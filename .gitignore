@@ -1,0 +1,30 @@
+# Build artifacts
+out/
+build/
+build-xray/
+*.o
+*.ko
+*.mod
+*.mod.c
+*.order
+*.symvers
+.tmp_versions/
+*.dwo
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+CMakeUserPresets.json
+
+# Docker & Logs
+*.log
+xray-log.*
+*.cpio.gz
+initramfs/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/

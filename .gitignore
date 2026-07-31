@@ -15,7 +15,7 @@ build-xray/
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-Makefile
+!/Makefile
 CMakeUserPresets.json
 
 # Docker & Logs

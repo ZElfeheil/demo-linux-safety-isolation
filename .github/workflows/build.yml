@@ -1,0 +1,239 @@
+name: CI Build & Safety Quality Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 1: Docker Container & Artifact Build
+  # ───────────────────────────────────────────────────────────────────────────
+  docker-build:
+    name: Docker Environment & Artifact Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Kernel Image & Rootfs Artifacts
+        run: |
+          docker build --target artifacts --output type=local,dest=./out .
+
+      - name: Verify Generated Output Artifacts
+        run: |
+          test -f ./out/Image || (echo "Error: ./out/Image missing" && exit 1)
+          test -f ./out/initramfs.cpio.gz || (echo "Error: ./out/initramfs.cpio.gz missing" && exit 1)
+          echo "Verifying initramfs cpio archive contents..."
+          cpio_list=$(zcat ./out/initramfs.cpio.gz | cpio -t 2>/dev/null)
+          echo "$cpio_list" | grep -q "modules/safety_mem.ko" || (echo "Error: safety_mem.ko missing from initramfs" && exit 1)
+          echo "$cpio_list" | grep -q "bin/harness" || (echo "Error: harness binary missing from initramfs" && exit 1)
+          echo "$cpio_list" | grep -q "bin/monitor" || (echo "Error: monitor binary missing from initramfs" && exit 1)
+          ls -lh ./out/
+
+      - name: Upload Kernel & Rootfs Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-boot-artifacts
+          path: ./out/
+          retention-days: 7
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 2: Kernel Static Analysis (Sparse & Smatch)
+  # ───────────────────────────────────────────────────────────────────────────
+  kernel-static:
+    name: Kernel Static Analysis (Sparse & Smatch)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Toolchain & Static Analyzers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            sparse smatch \
+            make flex bison libssl-dev libelf-dev bc
+
+      - name: Run Sparse Static Analysis (make C=1)
+        run: |
+          echo "Running Sparse static check on kernel modules..."
+          # Mock or reference Linux kernel build header directory
+          make -C kernel CHECK="sparse" C=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+
+      - name: Run Smatch Static Analysis
+        run: |
+          echo "Running Smatch static check on kernel modules..."
+          smatch --project=kernel kernel/safety_mem/safety_mem.c
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 3: Clang-Tidy (C++ Core Guidelines)
+  # ───────────────────────────────────────────────────────────────────────────
+  clang-tidy:
+    name: C++20 Clang-Tidy Core Guidelines Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Clang-Tidy & Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy-16 cmake ninja-build g++-aarch64-linux-gnu
+
+      - name: Configure CMake & Generate Compile Commands
+        run: |
+          cmake -S userspace -B userspace/build \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DCMAKE_CXX_STANDARD=20
+
+      - name: Run Clang-Tidy Analysis
+        run: |
+          clang-tidy-16 -p userspace/build \
+            userspace/common/*.hpp \
+            userspace/monitor/*.cpp \
+            userspace/harness/*.cpp \
+            userspace/devmem/*.cpp \
+            userspace/analysis/*.cpp
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 4: Cppcheck Static Analysis
+  # ───────────────────────────────────────────────────────────────────────────
+  cppcheck:
+    name: C++ Cppcheck Static Analyzer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cppcheck
+
+      - name: Execute Cppcheck Inspection
+        run: |
+          cppcheck --enable=all \
+                   --std=c++20 \
+                   --language=c++ \
+                   --inline-suppr \
+                   --suppress=missingIncludeSystem \
+                   --error-exitcode=1 \
+                   userspace/
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 5: ASan + UBSan Runtime Validation
+  # ───────────────────────────────────────────────────────────────────────────
+  asan-ubsan:
+    name: Userspace ASan + UBSan Dynamic Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Build Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+
+      - name: Configure & Build with Sanitizers
+        run: |
+          cmake -S userspace -B userspace/build-asan \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+            -GNinja
+          ninja -C userspace/build-asan
+
+      - name: Run Sanitizer Test Suite
+        env:
+          ASAN_OPTIONS: "detect_leaks=1:check_initialization_order=1"
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
+        run: |
+          ctest --test-dir userspace/build-asan --output-on-failure
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Job 6: ThreadSanitizer (TSan) Data Race Verification
+  # ───────────────────────────────────────────────────────────────────────────
+  tsan:
+    name: Userspace TSan Data Race Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Build Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+
+      - name: Configure & Build with ThreadSanitizer
+        run: |
+          cmake -S userspace -B userspace/build-tsan \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=thread" \
+            -GNinja
+          ninja -C userspace/build-tsan
+
+      - name: Run Concurrency & Race Tests
+        env:
+          TSAN_OPTIONS: "second_deadlock_stack=1"
+        run: |
+          ctest --test-dir userspace/build-tsan --output-on-failure
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Optional Job: Clang XRay Profiling (Manual Trigger)
+  # ───────────────────────────────────────────────────────────────────────────
+  xray-profile:
+    name: Clang XRay Timing Profile Generation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install LLVM 16 & XRay Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-16 lld-16 llvm-16 cmake ninja-build
+
+      - name: Build with XRay Instrumentation
+        run: |
+          cmake -S userspace -B userspace/build-xray \
+            -DCMAKE_CXX_COMPILER=clang++-16 \
+            -DCMAKE_CXX_FLAGS="-fxray-instrument -fxray-instruction-threshold=50" \
+            -GNinja
+          ninja -C userspace/build-xray
+
+      - name: Generate XRay Profile Report
+        run: |
+          echo "=== Executing XRay Instrumented Userspace Application ==="
+          export XRAY_OPTIONS="patch_premain=true xray_mode=xray-basic"
+          if [ -f "./userspace/build-xray/harness" ]; then
+            ./userspace/build-xray/harness --auto --scenario B
+          elif [ -f "./userspace/build-xray/bin/harness" ]; then
+            ./userspace/build-xray/bin/harness --auto --scenario B
+          fi
+          
+          XRAY_LOG=$(ls xray-log.* 2>/dev/null | head -n 1)
+          if [ -n "$XRAY_LOG" ]; then
+            echo "Processing XRay trace log: $XRAY_LOG" > xray-report.txt
+            llvm-xray-16 account "$XRAY_LOG" --sort=sum --sort-desc >> xray-report.txt
+          else
+            echo "[-] Warning: No xray-log generated, generating binary trace summary" > xray-report.txt
+            llvm-xray-16 extract ./userspace/build-xray/harness 2>/dev/null >> xray-report.txt
+          fi
+
+      - name: Upload XRay Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xray-timing-report
+          path: xray-report.txt

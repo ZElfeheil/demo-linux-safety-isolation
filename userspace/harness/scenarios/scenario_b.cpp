@@ -6,15 +6,16 @@
 namespace safety {
 
 auto ScenarioB::setup() -> safety::expected<void, std::string> {
-    if (auto res = loader_.load("/lib/modules/safety_mem.ko"); !res) return res;
-    if (auto res = loader_.load("/lib/modules/mutex_threads.ko"); !res) return res;
+    if (auto res = loader_.load("modules/ctx_monitor.ko"); !res) return res;
+    if (auto res = loader_.load("modules/safety_mem.ko"); !res) return res;
+    if (auto res = loader_.load("modules/mutex_threads.ko"); !res) return res;
     return {};
 }
 
 auto ScenarioB::run() -> ScenarioResult {
     auto start_ts = std::chrono::high_resolution_clock::now();
 
-    if (auto res = loader_.load("/lib/modules/rogue_thread.ko", "attack_mode=0 interval_ms=100"); !res) {
+    if (auto res = loader_.load("modules/rogue_thread.ko", "attack_mode=0 interval_ms=100"); !res) {
         return ScenarioResult{ScenarioStatus::Error, {}, res.error()};
     }
 

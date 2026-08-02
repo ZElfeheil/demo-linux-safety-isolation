@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Link binaries statically for initramfs standalone execution
+set(CMAKE_EXE_LINKER_FLAGS "-static")
+
 # Global Compiler Warning Flags
 add_compile_options(-Wall -Wextra -Werror -Wpedantic)
 

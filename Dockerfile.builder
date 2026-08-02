@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     xz-utils \
     git \
+    file \
     tar \
     gzip \
     sparse \
@@ -40,9 +41,13 @@ RUN (git clone --depth 1 https://github.com/error27/smatch.git /tmp/smatch || gi
     && (cd /tmp/smatch && make -j$(nproc) && cp smatch /usr/local/bin/) \
     && rm -rf /tmp/smatch || echo "Warning: smatch build skipped"
 
-# Download aarch64 compatible static busybox binary for target VM rootfs
-RUN wget -q -O /bin/busybox-aarch64 https://busybox.net/downloads/binaries/1.35.0-aarch64-linux-musl/busybox \
-    && chmod +x /bin/busybox-aarch64 || true
+# Download aarch64 64-bit static busybox binary package for target VM rootfs
+RUN wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.37.0-10.1ubuntu3_arm64.deb \
+    && dpkg-deb -x busybox-static_1.37.0-10.1ubuntu3_arm64.deb /tmp/busybox-pkg \
+    && cp /tmp/busybox-pkg/usr/bin/busybox /bin/busybox-aarch64 \
+    && chmod +x /bin/busybox-aarch64 \
+    && rm -rf busybox-static_1.37.0-10.1ubuntu3_arm64.deb /tmp/busybox-pkg \
+    && file /bin/busybox-aarch64
 
 # ==============================================================================
 # Stage 2: Linux Kernel Builder (Linux 6.6 LTS Kernel Image)
@@ -58,8 +63,15 @@ RUN wget -q https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.tar.xz \
 # Copy target kernel configuration
 COPY env/kernel.config /demo/linux-6.6/.config
 
-# Configure and compile Linux kernel image for ARM64
+# Configure and compile Linux kernel image for ARM64 with exported symbols for demo modules
 RUN cd /demo/linux-6.6 \
+    && echo '#include <linux/module.h>' >> arch/arm64/mm/pageattr.c \
+    && echo 'EXPORT_SYMBOL_GPL(set_memory_ro);' >> arch/arm64/mm/pageattr.c \
+    && echo 'EXPORT_SYMBOL_GPL(set_memory_rw);' >> arch/arm64/mm/pageattr.c \
+    && echo '#include <linux/module.h>' >> mm/init-mm.c \
+    && echo 'EXPORT_SYMBOL_GPL(init_mm);' >> mm/init-mm.c \
+    && echo '#include <linux/module.h>' >> mm/maccess.c \
+    && echo 'EXPORT_SYMBOL_GPL(copy_to_kernel_nofault);' >> mm/maccess.c \
     && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig \
     && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) Image modules \
     && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) modules_prepare
@@ -73,11 +85,11 @@ WORKDIR /demo/kernel
 COPY kernel/ /demo/kernel/
 
 # Build C kernel modules against kernel 6.6 tree
-RUN KBUILD_MODPOST_WARN=1 make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+RUN make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
          KERNEL_SRC=/demo/linux-6.6 all
 
 # Run sparse static analysis on kernel module source code
-RUN KBUILD_MODPOST_WARN=1 make CHECK="sparse" C=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
+RUN make CHECK="sparse" C=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
          KERNEL_SRC=/demo/linux-6.6 all
 
 # Run smatch static analysis on kernel module source code

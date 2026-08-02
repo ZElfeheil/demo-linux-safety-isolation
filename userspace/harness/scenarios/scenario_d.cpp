@@ -7,9 +7,10 @@
 namespace safety {
 
 auto ScenarioD::setup() -> safety::expected<void, std::string> {
-    if (auto res = loader_.load("/lib/modules/safety_mem.ko"); !res) return res;
-    if (auto res = loader_.load("/lib/modules/ctx_monitor.ko"); !res) return res;
-    if (auto res = loader_.load("/lib/modules/bad_driver.ko"); !res) return res;
+    if (auto res = loader_.load("modules/ctx_monitor.ko"); !res) return res;
+    if (auto res = loader_.load("modules/safety_mem.ko"); !res) return res;
+    if (auto res = loader_.load("modules/mutex_threads.ko"); !res) return res;
+    if (auto res = loader_.load("modules/bad_driver.ko"); !res) return res;
 
     std::ofstream status_file("/proc/safety_mem_status");
     if (status_file.is_open()) {

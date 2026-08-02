@@ -38,9 +38,8 @@ static unsigned int hold_duration_ms = 50;
 module_param(hold_duration_ms, uint, 0644);
 MODULE_PARM_DESC(hold_duration_ms, "Thread A mutex hold duration in ms (default: 50)");
 
-/* Exported Mutex */
-DEFINE_MUTEX(safety_mutex);
-EXPORT_SYMBOL_GPL(safety_mutex);
+/* External Mutex (from safety_mem.ko) */
+extern struct mutex safety_mutex;
 
 /* External Safety Memory Pointer (from safety_mem.ko) */
 extern u32 *safety_buf_ptr;

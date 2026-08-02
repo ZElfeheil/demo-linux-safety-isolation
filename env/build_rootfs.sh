@@ -18,27 +18,28 @@ mkdir -p "${ROOTFS_DIR}"/{bin,sbin,etc,proc,sys,dev,dev/pts,tmp,modules,results,
 # ---------------------------------------------------------------------
 echo "[*] Installing Busybox userspace utilities..."
 BUSYBOX_BIN=""
-if [[ -f /bin/busybox-aarch64 ]]; then
-    BUSYBOX_BIN="/bin/busybox-aarch64"
-elif [[ -f /usr/bin/busybox-aarch64 ]]; then
-    BUSYBOX_BIN="/usr/bin/busybox-aarch64"
-elif [[ -f /bin/busybox ]] && file /bin/busybox 2>/dev/null | grep -q "ARM aarch64"; then
-    BUSYBOX_BIN="/bin/busybox"
-fi
+for candidate in /bin/busybox-aarch64 /usr/bin/busybox-aarch64 /bin/busybox; do
+    if [[ -f "${candidate}" ]] && file -b "${candidate}" 2>/dev/null | grep -qi "ELF 64-bit.*aarch64\|ELF 64-bit.*ARM"; then
+        BUSYBOX_BIN="${candidate}"
+        break
+    fi
+done
 
 if [[ -n "${BUSYBOX_BIN}" ]]; then
     cp "${BUSYBOX_BIN}" "${ROOTFS_DIR}/bin/busybox"
 else
     echo "[*] Downloading static aarch64 Busybox binary..."
-    wget -q -O "${ROOTFS_DIR}/bin/busybox" https://busybox.net/downloads/binaries/1.35.0-aarch64-linux-musl/busybox || {
+    wget -q -O "${ROOTFS_DIR}/bin/busybox" https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-armv8l || {
         echo "[-] Error: Failed to acquire static aarch64 BusyBox binary! A static aarch64 BusyBox binary is required." >&2
         exit 1
     }
 fi
 
 chmod 4755 "${ROOTFS_DIR}/bin/busybox"
-# Create symlinks for standard UNIX commands
-"${ROOTFS_DIR}/bin/busybox" --install -s "${ROOTFS_DIR}/bin" 2>/dev/null || true
+# Create symlinks for standard UNIX commands (explicitly to support cross-building without qemu-user)
+for cmd in sh ash bash ls cat echo mount umount mdev insmod rmmod modprobe dmesg clear ps kill sleep mkdir touch chmod chown sync poweroff reboot halt uname du find grep; do
+    ln -sf busybox "${ROOTFS_DIR}/bin/${cmd}"
+done
 
 # ---------------------------------------------------------------------
 # 2. Copy Kernel Modules (.ko)
@@ -71,9 +72,14 @@ for app in harness monitor devmem analysis; do
     fi
 done
 
-# ---------------------------------------------------------------------
-# 4. Generate PID 1 Startup Script (/init)
-# ---------------------------------------------------------------------
+# Create /etc/profile for shell sessions
+cat << 'PEOF' > "${ROOTFS_DIR}/etc/profile"
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export HOME=/root
+export TERM=xterm-256color
+PEOF
+
+# Generate PID 1 Startup Script (/init)
 echo "[*] Generating /init startup script..."
 cat << 'EOF' > "${ROOTFS_DIR}/init"
 #!/bin/sh
@@ -90,7 +96,6 @@ mount -t devpts devpts /dev/pts
 mount -t debugfs debugfs /sys/kernel/debug 2>/dev/null || true
 
 # Populate device nodes
-echo /sbin/mdev > /proc/sys/kernel/hotplug 2>/dev/null || true
 mdev -s 2>/dev/null || true
 
 # Mount hostshare via 9p if VirtFS is configured
@@ -111,8 +116,9 @@ echo "    # harness --interactive"
 echo "=========================================================================="
 echo ""
 
-# Spawn interactive shell on ttyAMA0 console
-exec /bin/sh
+# Spawn interactive login shell on ttyAMA0 console
+export ENV=/etc/profile
+exec /bin/sh -l
 EOF
 
 chmod +x "${ROOTFS_DIR}/init"

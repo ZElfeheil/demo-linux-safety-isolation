@@ -42,7 +42,9 @@ static phys_addr_t g_phys_addr;
 u32 *safety_buf_ptr = NULL;
 EXPORT_SYMBOL_GPL(safety_buf_ptr);
 
-extern struct mutex safety_mutex;
+DEFINE_MUTEX(safety_mutex);
+EXPORT_SYMBOL_GPL(safety_mutex);
+
 extern void ctx_monitor_set_protected_range(unsigned long start, unsigned long end);
 
 static atomic_t g_ctx_protected = ATOMIC_INIT(0);

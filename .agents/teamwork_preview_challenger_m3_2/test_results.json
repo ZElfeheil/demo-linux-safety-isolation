@@ -1,0 +1,412 @@
+[
+  {
+    "test_id": "DEVMEM_01",
+    "description": "No CLI arguments passed",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "ARM64 Physical Memory Inspector (`devmem`)\nUsage: /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem <subcommand> [args...]\n\nSubcommands:\n  read  <phys_addr>            Read 32-bit hex value from physical memory address\n  write <phys_addr> <value>   Write 32-bit hex value to physical memory address\n  watch <phys_addr> [ms]      Poll physical memory address every 100ms (or specified ms),\n                              highlighting live changes\n\nExamples:\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000\n",
+    "stderr": ""
+  },
+  {
+    "test_id": "DEVMEM_02A",
+    "description": "Help flag -h",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem -h",
+    "returncode": 0,
+    "expected_code": 0,
+    "passed": true,
+    "stdout": "ARM64 Physical Memory Inspector (`devmem`)\nUsage: /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem <subcommand> [args...]\n\nSubcommands:\n  read  <phys_addr>            Read 32-bit hex value from physical memory address\n  write <phys_addr> <value>   Write 32-bit hex value to physical memory address\n  watch <phys_addr> [ms]      Poll physical memory address every 100ms (or specified ms),\n                              highlighting live changes\n\nExamples:\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000\n",
+    "stderr": ""
+  },
+  {
+    "test_id": "DEVMEM_02B",
+    "description": "Help flag --help",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem --help",
+    "returncode": 0,
+    "expected_code": 0,
+    "passed": true,
+    "stdout": "ARM64 Physical Memory Inspector (`devmem`)\nUsage: /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem <subcommand> [args...]\n\nSubcommands:\n  read  <phys_addr>            Read 32-bit hex value from physical memory address\n  write <phys_addr> <value>   Write 32-bit hex value to physical memory address\n  watch <phys_addr> [ms]      Poll physical memory address every 100ms (or specified ms),\n                              highlighting live changes\n\nExamples:\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000\n",
+    "stderr": ""
+  },
+  {
+    "test_id": "DEVMEM_02C",
+    "description": "Help argument 'help'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem help",
+    "returncode": 0,
+    "expected_code": 0,
+    "passed": true,
+    "stdout": "ARM64 Physical Memory Inspector (`devmem`)\nUsage: /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem <subcommand> [args...]\n\nSubcommands:\n  read  <phys_addr>            Read 32-bit hex value from physical memory address\n  write <phys_addr> <value>   Write 32-bit hex value to physical memory address\n  watch <phys_addr> [ms]      Poll physical memory address every 100ms (or specified ms),\n                              highlighting live changes\n\nExamples:\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000\n",
+    "stderr": ""
+  },
+  {
+    "test_id": "DEVMEM_03A",
+    "description": "Unknown subcommand 'invalid_cmd'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem invalid_cmd",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "ARM64 Physical Memory Inspector (`devmem`)\nUsage: /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem <subcommand> [args...]\n\nSubcommands:\n  read  <phys_addr>            Read 32-bit hex value from physical memory address\n  write <phys_addr> <value>   Write 32-bit hex value to physical memory address\n  watch <phys_addr> [ms]      Poll physical memory address every 100ms (or specified ms),\n                              highlighting live changes\n\nExamples:\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000\n",
+    "stderr": "Error: Unknown subcommand 'invalid_cmd'\n"
+  },
+  {
+    "test_id": "DEVMEM_03B",
+    "description": "Unknown option '--invalid'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem --invalid",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "ARM64 Physical Memory Inspector (`devmem`)\nUsage: /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem <subcommand> [args...]\n\nSubcommands:\n  read  <phys_addr>            Read 32-bit hex value from physical memory address\n  write <phys_addr> <value>   Write 32-bit hex value to physical memory address\n  watch <phys_addr> [ms]      Poll physical memory address every 100ms (or specified ms),\n                              highlighting live changes\n\nExamples:\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000\n",
+    "stderr": "Error: Unknown subcommand '--invalid'\n"
+  },
+  {
+    "test_id": "DEVMEM_04A",
+    "description": "'read' subcommand missing address argument",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "ARM64 Physical Memory Inspector (`devmem`)\nUsage: /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem <subcommand> [args...]\n\nSubcommands:\n  read  <phys_addr>            Read 32-bit hex value from physical memory address\n  write <phys_addr> <value>   Write 32-bit hex value to physical memory address\n  watch <phys_addr> [ms]      Poll physical memory address every 100ms (or specified ms),\n                              highlighting live changes\n\nExamples:\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000\n",
+    "stderr": "Error: 'read' subcommand requires a physical address argument.\n"
+  },
+  {
+    "test_id": "DEVMEM_04B",
+    "description": "'read' with invalid hex string 0xZZZZ",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0xZZZZ",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Error: Invalid physical address: 0xZZZZ\n"
+  },
+  {
+    "test_id": "DEVMEM_04C",
+    "description": "'read' with non-hex string 'invalid_addr'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read invalid_addr",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Error: Invalid physical address: invalid_addr\n"
+  },
+  {
+    "test_id": "DEVMEM_04D",
+    "description": "'read' with trailing invalid char '0x1000G'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x1000G",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Error: Invalid physical address: 0x1000G\n"
+  },
+  {
+    "test_id": "DEVMEM_04E",
+    "description": "'read' with empty string address ''",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read ",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Error: Empty address string\n"
+  },
+  {
+    "test_id": "DEVMEM_04F",
+    "description": "'read' with spaces in address '  0x40001000  '",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read   0x40001000  ",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Error: Invalid physical address:   0x40001000  \n"
+  },
+  {
+    "test_id": "DEVMEM_04G",
+    "description": "'read' with negative hex '-0x1000'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read -0x1000",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Read Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_04H",
+    "description": "'read' with 64-bit uint64_t overflow value",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0xFFFFFFFFFFFFFFFF1234",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Read Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_04I",
+    "description": "'read' valid address on system without /dev/mem (proc/dev failure)",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Read Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_04J",
+    "description": "'read' with extra argument",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000 extra_arg",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Read Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_05A",
+    "description": "'write' subcommand missing address and value",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "ARM64 Physical Memory Inspector (`devmem`)\nUsage: /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem <subcommand> [args...]\n\nSubcommands:\n  read  <phys_addr>            Read 32-bit hex value from physical memory address\n  write <phys_addr> <value>   Write 32-bit hex value to physical memory address\n  watch <phys_addr> [ms]      Poll physical memory address every 100ms (or specified ms),\n                              highlighting live changes\n\nExamples:\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000\n",
+    "stderr": "Error: 'write' subcommand requires physical address and value arguments.\n"
+  },
+  {
+    "test_id": "DEVMEM_05B",
+    "description": "'write' subcommand missing value argument",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "ARM64 Physical Memory Inspector (`devmem`)\nUsage: /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem <subcommand> [args...]\n\nSubcommands:\n  read  <phys_addr>            Read 32-bit hex value from physical memory address\n  write <phys_addr> <value>   Write 32-bit hex value to physical memory address\n  watch <phys_addr> [ms]      Poll physical memory address every 100ms (or specified ms),\n                              highlighting live changes\n\nExamples:\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000\n",
+    "stderr": "Error: 'write' subcommand requires physical address and value arguments.\n"
+  },
+  {
+    "test_id": "DEVMEM_05C",
+    "description": "'write' with bad address string",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write bad_addr 0x12345678",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Error: Invalid physical address: bad_addr\n"
+  },
+  {
+    "test_id": "DEVMEM_05D",
+    "description": "'write' with bad value string",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 bad_val",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Error: Invalid 32-bit hex value: bad_val\n"
+  },
+  {
+    "test_id": "DEVMEM_05E",
+    "description": "'write' with empty value string",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 ",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Error: Empty value string\n"
+  },
+  {
+    "test_id": "DEVMEM_05F",
+    "description": "'write' with 32-bit overflow value 0x100000000 (> UINT32_MAX)",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0x100000000",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Write Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_05G",
+    "description": "'write' with negative hex value '-0xDEAD'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 -0xDEAD",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Write Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_05H",
+    "description": "'write' valid address/value on system without /dev/mem",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Write Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_05I",
+    "description": "'write' with extra argument",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD extra_arg",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Write Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_06A",
+    "description": "'watch' subcommand missing address argument",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "ARM64 Physical Memory Inspector (`devmem`)\nUsage: /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem <subcommand> [args...]\n\nSubcommands:\n  read  <phys_addr>            Read 32-bit hex value from physical memory address\n  write <phys_addr> <value>   Write 32-bit hex value to physical memory address\n  watch <phys_addr> [ms]      Poll physical memory address every 100ms (or specified ms),\n                              highlighting live changes\n\nExamples:\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem read 0x40001000\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem write 0x40001000 0xDEADDEAD\n  /Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000\n",
+    "stderr": "Error: 'watch' subcommand requires a physical address argument.\n"
+  },
+  {
+    "test_id": "DEVMEM_06B",
+    "description": "'watch' with bad address string",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch bad_addr",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Error: Invalid physical address: bad_addr\n"
+  },
+  {
+    "test_id": "DEVMEM_06C",
+    "description": "'watch' with invalid interval string 'invalid_ms'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000 invalid_ms",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Warning: Invalid interval 'invalid_ms', using default 100ms.\nWatch Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_06D",
+    "description": "'watch' with negative interval '-500'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000 -500",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Watch Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_06E",
+    "description": "'watch' with zero interval '0'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000 0",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Watch Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "DEVMEM_06F",
+    "description": "'watch' valid address and interval on system without /dev/mem",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/devmem watch 0x40001000 100",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "",
+    "stderr": "Watch Error: Failed to open /dev/mem: No such file or directory\n"
+  },
+  {
+    "test_id": "ANALYSIS_01",
+    "description": "Default execution trying to write to /results/comparison_table.md",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/analysis",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "Collecting telemetry and generating comparison report...\n",
+    "stderr": "Error: Failed to open output file for writing: /results/comparison_table.md\n"
+  },
+  {
+    "test_id": "ANALYSIS_02A",
+    "description": "Help flag -h",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/analysis -h",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "Collecting telemetry and generating comparison report...\n",
+    "stderr": "Error: Failed to open output file for writing: /results/comparison_table.md\n"
+  },
+  {
+    "test_id": "ANALYSIS_02B",
+    "description": "Help flag --help",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/analysis --help",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "Collecting telemetry and generating comparison report...\n",
+    "stderr": "Error: Failed to open output file for writing: /results/comparison_table.md\n"
+  },
+  {
+    "test_id": "ANALYSIS_02C",
+    "description": "Unknown option '--invalid_option'",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/analysis --invalid_option",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "Collecting telemetry and generating comparison report...\n",
+    "stderr": "Error: Failed to open output file for writing: /results/comparison_table.md\n"
+  },
+  {
+    "test_id": "ANALYSIS_03A",
+    "description": "Valid --output to temp file with missing /proc files",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/analysis --output /var/folders/b5/db42yzrd4jb972g0kx5bgx0c0000gn/T/tmpw5mgyiq_.md",
+    "returncode": 0,
+    "expected_code": 0,
+    "passed": true,
+    "stdout": "Collecting telemetry and generating comparison report...\nReport successfully written to /var/folders/b5/db42yzrd4jb972g0kx5bgx0c0000gn/T/tmpw5mgyiq_.md\n",
+    "stderr": ""
+  },
+  {
+    "test_id": "ANALYSIS_03B",
+    "description": "Valid --output=PATH syntax",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/analysis --output=/var/folders/b5/db42yzrd4jb972g0kx5bgx0c0000gn/T/tmptfpcegha.md",
+    "returncode": 0,
+    "expected_code": 0,
+    "passed": true,
+    "stdout": "Collecting telemetry and generating comparison report...\nReport successfully written to /var/folders/b5/db42yzrd4jb972g0kx5bgx0c0000gn/T/tmptfpcegha.md\n",
+    "stderr": ""
+  },
+  {
+    "test_id": "ANALYSIS_04A",
+    "description": "--output passed as last argument without path value",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/analysis --output",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "Collecting telemetry and generating comparison report...\n",
+    "stderr": "Error: Failed to open output file for writing: /results/comparison_table.md\n"
+  },
+  {
+    "test_id": "ANALYSIS_04B",
+    "description": "--output= passed with empty path string",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/analysis --output=",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "Collecting telemetry and generating comparison report...\n",
+    "stderr": "Error: Failed to open output file for writing: \n"
+  },
+  {
+    "test_id": "ANALYSIS_05A",
+    "description": "Unwritable path in non-existent root directory",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/analysis --output /nonexistent_root_dir_12345/report.md",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "Collecting telemetry and generating comparison report...\n",
+    "stderr": "Error: Failed to open output file for writing: /nonexistent_root_dir_12345/report.md\n"
+  },
+  {
+    "test_id": "ANALYSIS_05B",
+    "description": "Invalid directory path under /dev/null",
+    "cmd": "/Users/zeyadelfeheil/Documents/github/demo-linux-safety-isolation/build/bin/analysis --output /dev/null/report.md",
+    "returncode": 1,
+    "expected_code": 1,
+    "passed": true,
+    "stdout": "Collecting telemetry and generating comparison report...\n",
+    "stderr": "Error: Failed to open output file for writing: /dev/null/report.md\n"
+  }
+]

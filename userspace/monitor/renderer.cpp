@@ -20,8 +20,7 @@ std::size_t visual_len(std::string_view s) noexcept {
     std::size_t len = 0;
     for (std::size_t i = 0; i < s.size(); ) {
         auto c = static_cast<unsigned char>(s[i]);
-        if (c < 0x80) i += 1;
-        else if ((c & 0xE0) == 0xC0) i += 2;
+        if ((c & 0xE0) == 0xC0) i += 2;
         else if ((c & 0xF0) == 0xE0) i += 3;
         else if ((c & 0xF8) == 0xF0) i += 4;
         else i += 1;
@@ -47,8 +46,7 @@ std::string pad_line(std::string_view text, std::size_t target_width) {
         std::size_t cur_vlen = 0;
         while (byte_idx < text.size() && cur_vlen < target_width) {
             auto c = static_cast<unsigned char>(text[byte_idx]);
-            if (c < 0x80) byte_idx += 1;
-            else if ((c & 0xE0) == 0xC0) byte_idx += 2;
+            if ((c & 0xE0) == 0xC0) byte_idx += 2;
             else if ((c & 0xF0) == 0xE0) byte_idx += 3;
             else if ((c & 0xF8) == 0xF0) byte_idx += 4;
             else byte_idx += 1;
@@ -83,7 +81,7 @@ void Renderer::render(std::string& out_buf, TerminalSize size) const {
     out_buf.clear();
     out_buf.append("\033[H"); // Cursor home (top-left)
 
-    if (!state_) return;
+    if (state_ == nullptr) return;
 
     switch (state_->mode.load()) {
         case DashboardMode::Normal:
@@ -99,7 +97,7 @@ void Renderer::render(std::string& out_buf, TerminalSize size) const {
 }
 
 void Renderer::render_normal(std::string& out, TerminalSize size) const {
-    if (!state_) return;
+    if (state_ == nullptr) return;
 
     const uint16_t cols = (size.cols < kMinCols) ? kMinCols : size.cols;
     const uint16_t rows = (size.rows < kMinRows) ? kMinRows : size.rows;
@@ -184,7 +182,7 @@ void Renderer::render_normal(std::string& out, TerminalSize size) const {
 }
 
 void Renderer::render_paused(std::string& out, TerminalSize size) const {
-    if (!state_) return;
+    if (state_ == nullptr) return;
 
     ScenarioInfo s_info;
     {
@@ -217,7 +215,7 @@ void Renderer::render_paused(std::string& out, TerminalSize size) const {
 }
 
 void Renderer::render_revealed(std::string& out, TerminalSize size) const {
-    if (!state_) return;
+    if (state_ == nullptr) return;
 
     ScenarioInfo s_info;
     {

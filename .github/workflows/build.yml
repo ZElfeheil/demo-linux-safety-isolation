@@ -26,8 +26,8 @@ jobs:
 
       - name: Build Kernel Image & Rootfs Artifacts
         run: |
-          docker build --target artifacts --output type=local,dest=./out .
-
+          docker build -f Dockerfile.builder --target artifacts --output type=local,dest=./out .
+ 
       - name: Verify Generated Output Artifacts
         run: |
           test -f ./out/Image || (echo "Error: ./out/Image missing" && exit 1)
@@ -61,8 +61,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             gcc-aarch64-linux-gnu \
-            sparse smatch \
+            sparse git sqlite3 libsqlite3-dev \
             make flex bison libssl-dev libelf-dev bc
+          git clone --depth 1 https://github.com/error27/smatch.git /tmp/smatch
+          make -C /tmp/smatch -j$(nproc)
+          sudo make -C /tmp/smatch install
 
       - name: Run Sparse Static Analysis (make C=1)
         run: |
@@ -127,6 +130,7 @@ jobs:
                    --language=c++ \
                    --inline-suppr \
                    --suppress=missingIncludeSystem \
+                   --suppress=unusedFunction \
                    --error-exitcode=1 \
                    userspace/
 

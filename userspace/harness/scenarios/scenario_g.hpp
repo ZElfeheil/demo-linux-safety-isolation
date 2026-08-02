@@ -10,7 +10,7 @@ namespace safety {
 
 class ScenarioG {
 public:
-    [[nodiscard]] std::string_view name() const noexcept {
+    [[nodiscard]] static constexpr std::string_view name() noexcept {
         return "Scenario G: Mutex Metadata Attack";
     }
 

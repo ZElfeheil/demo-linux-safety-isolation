@@ -7,7 +7,7 @@
 
 namespace safety {
 
-void PresenterEngine::pause_for_presenter(std::string_view prompt) const {
+void PresenterEngine::pause_for_presenter(std::string_view prompt) {
     std::cout << prompt << std::flush;
     TermiosGuard raw_guard;
     (void)std::getchar();

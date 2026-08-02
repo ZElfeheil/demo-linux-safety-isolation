@@ -118,6 +118,7 @@ static auto generate_markdown_report(const TelemetryData& telemetry) -> std::str
 
 } // namespace safety::analysis
 
+// cppcheck-suppress constParameter
 int main(int argc, char* const argv[]) {
     std::string output_path = "/results/comparison_table.md";
 

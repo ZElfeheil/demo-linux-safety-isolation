@@ -66,7 +66,7 @@ public:
     auto run_scenario(S& scenario, const QuestionSlide& slide) -> ScenarioResult;
 
     static void ensure_tmux_environment(const std::string& scenario_arg = "", const std::string& start_at_arg = "");
-    void pause_for_presenter(std::string_view prompt = "[ Press any key to continue... ]") const;
+    static void pause_for_presenter(std::string_view prompt = "[ Press any key to continue... ]");
     static void notify_monitor_state(std::string_view state, const QuestionSlide& slide);
 
 private:

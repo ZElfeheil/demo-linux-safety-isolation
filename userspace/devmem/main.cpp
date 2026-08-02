@@ -125,6 +125,7 @@ int handle_watch_cmd(int argc, const char* const* argv) {
 }
 } // namespace
 
+// cppcheck-suppress constParameter
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         print_usage(argv[0]);

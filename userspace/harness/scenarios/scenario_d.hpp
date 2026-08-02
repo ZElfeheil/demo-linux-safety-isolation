@@ -10,7 +10,7 @@ namespace safety {
 
 class ScenarioD {
 public:
-    [[nodiscard]] std::string_view name() const noexcept {
+    [[nodiscard]] static constexpr std::string_view name() noexcept {
         return "Scenario D: DMA Linear Map Bypass";
     }
 

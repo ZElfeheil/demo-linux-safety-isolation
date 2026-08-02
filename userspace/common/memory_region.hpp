@@ -77,8 +77,8 @@ public:
         const auto page_size = static_cast<std::size_t>(page_size_long);
 
         const uint64_t page_base = phys_addr & ~(page_size - 1);
-        const auto offset_in_page = static_cast<std::size_t>(phys_addr & (page_size - 1));
-        const std::size_t map_length = offset_in_page + size;
+        const auto page_offset = static_cast<std::size_t>(phys_addr & (page_size - 1));
+        const std::size_t map_length = page_offset + size;
 
         int open_flags = (mode == MemoryAccessMode::ReadOnly) ? O_RDONLY : O_RDWR;
         open_flags |= O_SYNC;
@@ -98,7 +98,7 @@ public:
         }
 
         std::unique_ptr<void, MmapDeleter> mapping(raw_ptr, MmapDeleter{map_length});
-        return PhysicalMemoryView(std::move(mapping), phys_addr, size, offset_in_page);
+        return PhysicalMemoryView(std::move(mapping), phys_addr, size, page_offset);
     }
 
     /// Returns a const span view of the mapped physical memory region (I.13)

@@ -23,6 +23,7 @@ void print_usage(std::string_view prog_name) {
 }
 } // namespace
 
+// cppcheck-suppress constParameter
 int main(int argc, char* argv[]) {
     bool auto_mode = false;
     std::string scenario_id = "all";
@@ -127,12 +128,10 @@ int main(int argc, char* argv[]) {
     }
 
     if (scenario_id == "D" || (scenario_id == "all" && (active || start_at_id == "D"))) {
-        active = true;
         engine.run_scenario(sc_d, slide_d);
     }
 
     if (scenario_id == "F" || (scenario_id == "all" && (active || start_at_id == "F"))) {
-        active = true;
         engine.run_scenario(sc_f, slide_f);
     }
 

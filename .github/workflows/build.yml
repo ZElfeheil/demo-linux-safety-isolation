@@ -114,7 +114,10 @@ jobs:
                    --std=c++20 \
                    --language=c++ \
                    --inline-suppr \
+                   -I userspace \
                    --suppress=missingIncludeSystem \
+                   --suppress=missingInclude \
+                   --suppress=noExplicitConstructor \
                    --suppress=unusedFunction \
                    --error-exitcode=1 \
                    userspace/

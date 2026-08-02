@@ -54,16 +54,19 @@ class expected {
 public:
     constexpr expected() : var_(std::in_place_type<T>) {}
 
+    // cppcheck-suppress noExplicitConstructor
     template<typename U = T>
     requires (!std::is_same_v<std::remove_cvref_t<U>, expected> &&
               !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
               std::is_constructible_v<T, U>)
     constexpr expected(U&& val) : var_(std::in_place_type<T>, std::forward<U>(val)) {}
 
+    // cppcheck-suppress noExplicitConstructor
     template<typename G>
     requires std::is_constructible_v<E, const G&>
     constexpr expected(const unexpected<G>& unex) : var_(std::in_place_type<unexpected<E>>, unex.error()) {}
 
+    // cppcheck-suppress noExplicitConstructor
     template<typename G>
     requires std::is_constructible_v<E, G>
     constexpr expected(unexpected<G>&& unex) : var_(std::in_place_type<unexpected<E>>, std::move(unex).error()) {}

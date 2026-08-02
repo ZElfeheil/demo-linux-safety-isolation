@@ -13,7 +13,6 @@ constexpr uint16_t kDefaultRows = 24;
 constexpr uint16_t kMinCols = 40;
 constexpr uint16_t kMinRows = 12;
 constexpr std::size_t kMinSideW = 18;
-constexpr std::size_t kMinMainH = 8;
 constexpr std::size_t kFallbackCardW = 38;
 
 std::size_t visual_len(std::string_view s) noexcept {
@@ -104,7 +103,7 @@ void Renderer::render_normal(std::string& out, TerminalSize size) const {
 
     const std::size_t left_w = (cols / 2 > 2) ? ((cols / 2) - 1) : kMinSideW;
     const std::size_t right_w = (cols > left_w + 3) ? (cols - left_w - 3) : kMinSideW;
-    const std::size_t main_h = static_cast<std::size_t>(rows - 4);
+    const auto main_h = static_cast<std::size_t>(rows - 4);
 
     // Header line: ┌─ SAFETY MEMORY STATE ─┬─ KERNEL EVENT STREAM ─┐
     const std::string left_title = " SAFETY MEMORY STATE ";

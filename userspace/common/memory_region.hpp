@@ -74,10 +74,10 @@ public:
         if (page_size_long <= 0) {
             page_size_long = static_cast<long>(kDefaultPageSize);
         }
-        const std::size_t page_size = static_cast<std::size_t>(page_size_long);
+        const auto page_size = static_cast<std::size_t>(page_size_long);
 
         const uint64_t page_base = phys_addr & ~(page_size - 1);
-        const std::size_t offset_in_page = static_cast<std::size_t>(phys_addr & (page_size - 1));
+        const auto offset_in_page = static_cast<std::size_t>(phys_addr & (page_size - 1));
         const std::size_t map_length = offset_in_page + size;
 
         int open_flags = (mode == MemoryAccessMode::ReadOnly) ? O_RDONLY : O_RDWR;

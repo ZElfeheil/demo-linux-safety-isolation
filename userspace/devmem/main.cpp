@@ -32,7 +32,7 @@ void print_usage(std::string_view prog_name) {
         prog_name, prog_name, prog_name, prog_name);
 }
 
-int handle_read_cmd(int argc, const char* const argv[]) {
+int handle_read_cmd(int argc, const char* const* argv) {
     if (argc < 3) {
         std::cerr << "Error: 'read' subcommand requires a physical address argument.\n";
         print_usage(argv[0]);
@@ -55,7 +55,7 @@ int handle_read_cmd(int argc, const char* const argv[]) {
     return 0;
 }
 
-int handle_write_cmd(int argc, const char* const argv[]) {
+int handle_write_cmd(int argc, const char* const* argv) {
     if (argc < 4) {
         std::cerr << "Error: 'write' subcommand requires physical address and value arguments.\n";
         print_usage(argv[0]);
@@ -84,7 +84,7 @@ int handle_write_cmd(int argc, const char* const argv[]) {
     return 0;
 }
 
-int handle_watch_cmd(int argc, const char* const argv[]) {
+int handle_watch_cmd(int argc, const char* const* argv) {
     if (argc < 3) {
         std::cerr << "Error: 'watch' subcommand requires a physical address argument.\n";
         print_usage(argv[0]);

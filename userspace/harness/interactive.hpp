@@ -91,9 +91,9 @@ auto PresenterEngine::run_scenario(S& scenario, const QuestionSlide& slide) -> S
         notify_monitor_state("REVEALED", slide);
         auto result = scenario.run();
 
-        std::cout << "    Result: " << ((result.status == ScenarioStatus::Success) ? "PASSED" : "VIOLATION DETECTED / BLOCKED") << "\n";
-        if (!result.message.empty()) {
-            std::cout << "    Detail: " << result.message << "\n";
+        std::cout << "    Result: " << ((result.status == ScenarioStatus::Passed) ? "PASSED" : "VIOLATION DETECTED / BLOCKED") << "\n";
+        if (!result.error_message.empty()) {
+            std::cout << "    Detail: " << result.error_message << "\n";
         }
 
         scenario.teardown();

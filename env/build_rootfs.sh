@@ -100,7 +100,8 @@ mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
 mount -t debugfs debugfs /sys/kernel/debug 2>/dev/null || true
 
-# Populate device nodes
+# Populate device nodes and PTY pseudo-terminals
+[ -c /dev/ptmx ] || mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -sf /dev/pts/ptmx /dev/ptmx 2>/dev/null || true
 mdev -s 2>/dev/null || true
 
 # Mount hostshare via 9p if VirtFS is configured
@@ -121,10 +122,9 @@ echo "    # harness --interactive"
 echo "=========================================================================="
 echo ""
 
-# Spawn interactive login shell on ttyAMA0 console
+# Spawn interactive login shell with controlling TTY (cttyhack for tmux job control)
 export ENV=/etc/profile
-/bin/sh -l
-poweroff -f
+exec cttyhack /bin/sh -l
 EOF
 
 chmod +x "${ROOTFS_DIR}/init"

@@ -62,7 +62,8 @@ exec qemu-system-aarch64 \
   -accel "${ACCEL}" \
   -kernel "${KERNEL_IMG}" \
   -initrd "${INITRD_IMG}" \
-  -append "console=ttyAMA0 nokaslr loglevel=7" \
+  -append "console=ttyAMA0 nokaslr loglevel=7 reboot=k" \
   -virtfs local,path="${PROJECT_ROOT}",mount_tag=hostshare,security_model=none \
   -nographic \
+  -no-reboot \
   -serial mon:stdio

@@ -33,10 +33,14 @@ int main(int argc, char* argv[]) {
         std::string arg = argv[i];
         if (arg == "--interactive") {
             auto_mode = false;
-        } else if (arg == "--auto") {
+        } else if (arg == "--auto" || arg == "--clean" || arg == "--quiet") {
             auto_mode = true;
         } else if (arg == "--scenario" && i + 1 < argc) {
             scenario_id = argv[++i];
+            // If running a specific scenario without --interactive, default to clean execution
+            if (std::none_of(argv + 1, argv + argc, [](std::string_view a) { return a == "--interactive"; })) {
+                auto_mode = true;
+            }
         } else if (arg == "--start-at" && i + 1 < argc) {
             start_at_id = argv[++i];
         } else if (arg == "-h" || arg == "--help") {

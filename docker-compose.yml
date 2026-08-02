@@ -1,0 +1,31 @@
+services:
+  # Primary build service targeting the 'artifacts' stage
+  build:
+    build:
+      context: .
+      dockerfile: Dockerfile.builder
+      target: artifacts
+      x-outputs:
+        - type: local
+          dest: ./out
+
+  # Optional build service targeting Clang XRay instrumented binaries
+  xray:
+    build:
+      context: .
+      dockerfile: Dockerfile.builder
+      target: userspace-xray-builder
+      x-outputs:
+        - type: local
+          dest: ./out/xray
+
+  # Interactive shell container for debugging build environment
+  shell:
+    build:
+      context: .
+      dockerfile: Dockerfile.builder
+      target: base
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: /bin/bash

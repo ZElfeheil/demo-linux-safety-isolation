@@ -1,0 +1,99 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "toolchainFile": "${sourceDir}/../cmake/aarch64-toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_CXX_EXTENSIONS": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug Build",
+      "description": "Debug symbols, no optimization (-O0 -g)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -Wall -Wextra -Wpedantic"
+      }
+    },
+    {
+      "name": "asan",
+      "displayName": "ASan + UBSan Build",
+      "description": "AddressSanitizer and UndefinedBehaviorSanitizer instrumentation",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra"
+      }
+    },
+    {
+      "name": "tsan",
+      "displayName": "TSan Build",
+      "description": "ThreadSanitizer instrumentation for detecting data races",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-g -O1 -fsanitize=thread -fno-omit-frame-pointer -Wall -Wextra"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release Build",
+      "description": "High optimization, stripped assertions (-O3 -DNDEBUG)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -Wall -Wextra"
+      }
+    },
+    {
+      "name": "xray",
+      "displayName": "Clang XRay Build (Optional)",
+      "description": "Function call timing instrumentation with Clang XRay",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/xray",
+      "toolchainFile": "${sourceDir}/../cmake/aarch64-toolchain-clang.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_COMPILER": "clang++-16",
+        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld",
+        "CMAKE_CXX_FLAGS": "-g -O2 -fxray-instrument -fxray-instruction-threshold=50 -Wall -Wextra"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "asan",
+      "configurePreset": "asan"
+    },
+    {
+      "name": "tsan",
+      "configurePreset": "tsan"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    },
+    {
+      "name": "xray",
+      "configurePreset": "xray"
+    }
+  ]
+}

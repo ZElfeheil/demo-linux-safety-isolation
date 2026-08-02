@@ -1,0 +1,57 @@
+---
+# Repository Root Clang-Tidy Configuration
+# System: ARM64 Linux 6.6 Safety Isolation Demonstration
+# Language Standard: C++20
+
+Checks: >
+  -*,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  cert-*,
+  -cert-err58-cpp,
+  -cert-err33-c,
+  -cert-env33-c,
+  concurrency-*,
+  -concurrency-mt-unsafe,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-forwarding-reference-overload,
+  -bugprone-exception-escape,
+  performance-*,
+  readability-*,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-braces-around-statements,
+  -readability-function-cognitive-complexity,
+  -readability-convert-member-functions-to-static
+
+WarningsAsErrors: '*'
+
+HeaderFilterRegex: 'userspace/.*'
+
+FormatStyle: 'file'
+
+CheckOptions:
+  - key:   cppcoreguidelines-explicit-virtual-functions.IgnoreDestructors
+    value: 'true'
+  - key:   cppcoreguidelines-special-member-functions.AllowMissingMoveFunctions
+    value: 'true'
+  - key:   cppcoreguidelines-macro-usage.AllowedRegexp
+    value: '^SAFE_|^MONITOR_|^HARNESS_'
+  - key:   modernize-use-auto.MinTypeNameLength
+    value: '5'
+  - key:   modernize-replace-auto-ptr.IncludeStyle
+    value: 'llvm'
+  - key:   readability-function-cognitive-complexity.Threshold
+    value: '25'

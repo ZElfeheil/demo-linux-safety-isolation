@@ -1,0 +1,74 @@
+[
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/devmem.dir/devmem/main.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/devmem/main.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/devmem/main.cpp",
+  "output": "CMakeFiles/devmem.dir/devmem/main.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/devmem.dir/devmem/phys_view.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/devmem/phys_view.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/devmem/phys_view.cpp",
+  "output": "CMakeFiles/devmem.dir/devmem/phys_view.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/analysis.dir/analysis/main.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/analysis/main.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/analysis/main.cpp",
+  "output": "CMakeFiles/analysis.dir/analysis/main.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/monitor.dir/monitor/main.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/monitor/main.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/monitor/main.cpp",
+  "output": "CMakeFiles/monitor.dir/monitor/main.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/monitor.dir/monitor/renderer.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/monitor/renderer.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/monitor/renderer.cpp",
+  "output": "CMakeFiles/monitor.dir/monitor/renderer.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/harness.dir/harness/main.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/main.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/main.cpp",
+  "output": "CMakeFiles/harness.dir/harness/main.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/harness.dir/harness/interactive.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/interactive.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/interactive.cpp",
+  "output": "CMakeFiles/harness.dir/harness/interactive.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/harness.dir/harness/module_loader.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/module_loader.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/module_loader.cpp",
+  "output": "CMakeFiles/harness.dir/harness/module_loader.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/harness.dir/harness/scenarios/scenario_b.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/scenarios/scenario_b.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/scenarios/scenario_b.cpp",
+  "output": "CMakeFiles/harness.dir/harness/scenarios/scenario_b.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/harness.dir/harness/scenarios/scenario_d.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/scenarios/scenario_d.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/scenarios/scenario_d.cpp",
+  "output": "CMakeFiles/harness.dir/harness/scenarios/scenario_d.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/harness.dir/harness/scenarios/scenario_f.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/scenarios/scenario_f.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/scenarios/scenario_f.cpp",
+  "output": "CMakeFiles/harness.dir/harness/scenarios/scenario_f.cpp.o"
+},
+{
+  "directory": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/build-clang",
+  "command": "/usr/bin/clang++  -I/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace -std=c++20 -arch arm64 -Wall -Wextra -Werror -Wpedantic -o CMakeFiles/harness.dir/harness/scenarios/scenario_g.cpp.o -c /Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/scenarios/scenario_g.cpp",
+  "file": "/Users/zeyadelfeheil/Documents/GitHub/demo-linux-safety-isolation/userspace/harness/scenarios/scenario_g.cpp",
+  "output": "CMakeFiles/harness.dir/harness/scenarios/scenario_g.cpp.o"
+}
+]

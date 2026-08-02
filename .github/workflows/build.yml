@@ -116,7 +116,7 @@ jobs:
                    --inline-suppr \
                    -I userspace \
                    --suppress=missingIncludeSystem \
-                   --suppress=missingInclude \
+                   --suppress=unmatchedSuppression \
                    --suppress=noExplicitConstructor \
                    --suppress=unusedFunction \
                    --error-exitcode=1 \

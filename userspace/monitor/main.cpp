@@ -63,7 +63,7 @@ int main() {
     safety::monitor::Renderer renderer(display_state);
 
     // 1. Mem Poller Loop (100ms)
-    std::jthread mem_poller([&display_state](std::stop_token stoken) {
+    std::jthread mem_poller([&display_state](const std::stop_token& stoken) {
         safety::ProcReader proc_reader("/proc/safety_mem_status");
         while (!stoken.stop_requested() && g_running.load()) {
             auto res = proc_reader.read();
@@ -107,14 +107,19 @@ int main() {
     });
 
     // 2. Event Streamer & State Sync Loop (100ms)
-    std::jthread event_streamer([&display_state](std::stop_token stoken) {
+    std::jthread event_streamer([&display_state](const std::stop_token& stoken) {
         while (!stoken.stop_requested() && g_running.load()) {
             // Read IPC state control file /tmp/demo_state
             std::ifstream state_file("/tmp/demo_state");
             if (state_file.is_open()) {
                 std::string line;
                 std::string state_str;
-                std::string sc_id, sc_title, sc_setup, sc_q, sc_ans, sc_exp;
+                std::string sc_id;
+                std::string sc_title;
+                std::string sc_setup;
+                std::string sc_q;
+                std::string sc_ans;
+                std::string sc_exp;
                 std::vector<std::string> sc_opts;
 
                 while (std::getline(state_file, line)) {
@@ -172,7 +177,7 @@ int main() {
                     };
                     std::lock_guard lock(display_state.events_mx);
                     display_state.events.push_back(ev);
-                    if (display_state.events.size() > display_state.max_events) {
+                    if (display_state.events.size() > safety::monitor::DisplayState::max_events) {
                         display_state.events.erase(display_state.events.begin());
                     }
                     read_count++;

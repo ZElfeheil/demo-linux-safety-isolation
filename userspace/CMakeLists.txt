@@ -8,8 +8,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Link binaries statically for initramfs standalone execution
-set(CMAKE_EXE_LINKER_FLAGS "-static")
+# Link binaries statically for initramfs standalone execution (disabled during ASan/TSan build)
+option(BUILD_STATIC "Build standalone static binaries for initramfs" ON)
+if (BUILD_STATIC AND NOT CMAKE_CXX_FLAGS MATCHES "fsanitize=")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+endif()
 
 # Global Compiler Warning Flags
 add_compile_options(-Wall -Wextra -Werror -Wpedantic)

@@ -104,7 +104,7 @@ void Renderer::render_normal(std::string& out, TerminalSize size) const {
 
     const std::size_t left_w = (cols / 2 > 2) ? ((cols / 2) - 1) : kMinSideW;
     const std::size_t right_w = (cols > left_w + 3) ? (cols - left_w - 3) : kMinSideW;
-    const std::size_t main_h = (rows > 4) ? static_cast<std::size_t>(rows - 4) : kMinMainH;
+    const std::size_t main_h = static_cast<std::size_t>(rows - 4);
 
     // Header line: ┌─ SAFETY MEMORY STATE ─┬─ KERNEL EVENT STREAM ─┐
     const std::string left_title = " SAFETY MEMORY STATE ";

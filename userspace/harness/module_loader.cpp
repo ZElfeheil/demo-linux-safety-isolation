@@ -17,9 +17,11 @@ ModuleLoader::~ModuleLoader() {
     unregister_instance(this);
 }
 
-ModuleLoader::ModuleLoader(ModuleLoader&& other) noexcept {
-    std::lock_guard lock(other.mutex_);
-    loaded_modules_ = std::move(other.loaded_modules_);
+ModuleLoader::ModuleLoader(ModuleLoader&& other) noexcept
+    : loaded_modules_([&other] {
+          std::lock_guard lock(other.mutex_);
+          return std::move(other.loaded_modules_);
+      }()) {
     register_instance(this);
 }
 
@@ -137,7 +139,7 @@ void ModuleLoader::cleanup_on_signal() {
         g_signal_received = 0;
         std::lock_guard lock(g_loaders_mutex);
         for (auto* loader : g_active_loaders) {
-            if (loader) {
+            if (loader != nullptr) {
                 loader->unload_all();
             }
         }

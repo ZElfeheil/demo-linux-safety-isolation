@@ -56,27 +56,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Toolchain & Static Analyzers
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            sparse git sqlite3 libsqlite3-dev \
-            make flex bison libssl-dev libelf-dev bc
-          git clone --depth 1 https://github.com/error27/smatch.git /tmp/smatch
-          make -C /tmp/smatch -j$(nproc)
-          sudo make -C /tmp/smatch install
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Run Sparse Static Analysis (make C=1)
+      - name: Run Sparse & Smatch Analysis inside Docker Container
         run: |
-          echo "Running Sparse static check on kernel modules..."
-          # Mock or reference Linux kernel build header directory
-          make -C kernel CHECK="sparse" C=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
-
-      - name: Run Smatch Static Analysis
-        run: |
-          echo "Running Smatch static check on kernel modules..."
-          smatch --project=kernel kernel/safety_mem/safety_mem.c
+          docker build -f Dockerfile.builder --target module-builder .
 
   # ───────────────────────────────────────────────────────────────────────────
   # Job 3: Clang-Tidy (C++ Core Guidelines)

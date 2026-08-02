@@ -13,6 +13,11 @@ BIN_SRC="${BIN_SRC:-/demo/build/bin}"
 echo "[*] Creating RootFS directory structure at ${ROOTFS_DIR}..."
 mkdir -p "${ROOTFS_DIR}"/{bin,sbin,etc,proc,sys,dev,dev/pts,tmp,modules,results,root,mnt/host}
 
+if [[ -d /opt/aarch64-root ]]; then
+    echo "[*] Installing aarch64 tmux and runtime shared libraries..."
+    cp -rn /opt/aarch64-root/* "${ROOTFS_DIR}/" 2>/dev/null || true
+fi
+
 # ---------------------------------------------------------------------
 # 1. Install Busybox Static Binary & Symlinks (aarch64)
 # ---------------------------------------------------------------------
@@ -118,7 +123,8 @@ echo ""
 
 # Spawn interactive login shell on ttyAMA0 console
 export ENV=/etc/profile
-exec /bin/sh -l
+/bin/sh -l
+poweroff -f
 EOF
 
 chmod +x "${ROOTFS_DIR}/init"

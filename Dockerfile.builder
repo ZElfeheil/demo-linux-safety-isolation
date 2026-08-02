@@ -49,6 +49,22 @@ RUN wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-sta
     && rm -rf busybox-static_1.37.0-10.1ubuntu3_arm64.deb /tmp/busybox-pkg \
     && file /bin/busybox-aarch64
 
+# Download aarch64 tmux and runtime libraries for rootfs
+RUN wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/t/tmux/tmux_3.4-1build1_arm64.deb \
+    && wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/libe/libevent/libevent-2.1-7t64_2.1.12-stable-8.1build1_arm64.deb \
+    && wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/n/ncurses/libncursesw6_6.4-4bluetile2_arm64.deb \
+    && wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/n/ncurses/libtinfo6_6.4-4bluetile2_arm64.deb \
+    && wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/g/glibc/libc6_2.39-0ubuntu8_arm64.deb \
+    && mkdir -p /tmp/tmux-pkg \
+    && dpkg-deb -x tmux_3.4-1build1_arm64.deb /tmp/tmux-pkg \
+    && dpkg-deb -x libevent-2.1-7t64_2.1.12-stable-8.1build1_arm64.deb /tmp/tmux-pkg \
+    && dpkg-deb -x libncursesw6_6.4-4bluetile2_arm64.deb /tmp/tmux-pkg \
+    && dpkg-deb -x libtinfo6_6.4-4bluetile2_arm64.deb /tmp/tmux-pkg \
+    && dpkg-deb -x libc6_2.39-0ubuntu8_arm64.deb /tmp/tmux-pkg \
+    && mkdir -p /opt/aarch64-root \
+    && cp -rn /tmp/tmux-pkg/* /opt/aarch64-root/ 2>/dev/null || true \
+    && rm -rf *.deb /tmp/tmux-pkg
+
 # ==============================================================================
 # Stage 2: Linux Kernel Builder (Linux 6.6 LTS Kernel Image)
 # ==============================================================================

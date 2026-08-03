@@ -54,6 +54,7 @@ add_executable(harness
     harness/module_loader.cpp
     harness/scenarios/scenario_b.cpp
     harness/scenarios/scenario_d.cpp
+    harness/scenarios/scenario_e.cpp
     harness/scenarios/scenario_f.cpp
     harness/scenarios/scenario_g.cpp
 )

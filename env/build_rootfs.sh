@@ -159,7 +159,8 @@ echo "[*] Generating run_demo_scenario_xx scripts..."
 
 for sc in "b:Rogue Thread - Unsynchronized Write" \
           "d:Bad Driver - Physical Linear Map Bypass" \
-          "f:SMMU / CTX Fault Detection" \
+          "e:SMMU Active - CPU Write Bypasses SMMU" \
+          "f:Full CTX + SMMU Hardware Isolation" \
           "g:Mutex Metadata Attack"; do
     id=$(echo "$sc" | cut -d':' -f1)
     name=$(echo "$sc" | cut -d':' -f2)

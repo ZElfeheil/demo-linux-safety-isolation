@@ -7,6 +7,7 @@
 #include "module_loader.hpp"
 #include "scenarios/scenario_b.hpp"
 #include "scenarios/scenario_d.hpp"
+#include "scenarios/scenario_e.hpp"
 #include "scenarios/scenario_f.hpp"
 #include "scenarios/scenario_g.hpp"
 
@@ -17,7 +18,7 @@ void print_usage(std::string_view prog_name) {
               << "Options:\n"
               << "  --interactive          Default mode: 4-beat presenter flow with keypress pauses\n"
               << "  --auto                 Automated mode: continuous execution (for CI / recording)\n"
-              << "  --scenario <id>        Run specific scenario (B, D, F, G, or all). Default: all core (B, D, F)\n"
+              << "  --scenario <id>        Run specific scenario (B, D, E, F, G, or all). Default: all core (B, D, E, F)\n"
               << "  --start-at <id>        Resume sequence starting from scenario <id> (e.g. D)\n"
               << "  -h, --help             Display this help message\n";
 }
@@ -62,6 +63,7 @@ int main(int argc, char* argv[]) {
     // Instantiate scenario objects
     safety::ScenarioB sc_b;
     safety::ScenarioD sc_d;
+    safety::ScenarioE sc_e;
     safety::ScenarioF sc_f;
     safety::ScenarioG sc_g;
 
@@ -93,6 +95,21 @@ int main(int argc, char* argv[]) {
         .explanation = "set_memory_ro() updates the PTE of the requested virtual address. The ARM64 kernel linear map retains\n"
                        "its own independent PTE mapping to the same physical page frame. Closing one virtual alias leaves the\n"
                        "linear alias (and physical DMA bus) open."
+    };
+
+    safety::QuestionSlide slide_e{
+        .id = "E",
+        .title = "Scenario E -- SMMU Active, CPU Write Bypasses SMMU",
+        .setup_desc = "SMMUv3 is active (smmu_guard.ko loaded). bad_driver writes via CPU linear map (phys_to_virt).",
+        .question_text = "SMMU is active. bad_driver writes to safety memory via CPU (not DMA). Does SMMU block it?",
+        .choices = {
+            {'A', "Yes -- SMMU protects all physical memory from any write", false},
+            {'B', "No -- SMMU only filters bus-master DMA traffic, not CPU core writes", true},
+            {'C', "Depends on SMMU stream ID configuration", false}
+        },
+        .explanation = "SMMUv3 sits on the system bus between peripherals and memory. It filters DMA transactions from\n"
+                       "bus masters (GPU, NIC, PCIe devices). CPU cores access memory through their own MMU (TTBR1_EL1),\n"
+                       "which is a completely separate translation path. SMMU never sees CPU reads/writes."
     };
 
     safety::QuestionSlide slide_f{
@@ -133,6 +150,10 @@ int main(int argc, char* argv[]) {
 
     if (scenario_id == "D" || (scenario_id == "all" && (active || start_at_id == "D"))) {
         engine.run_scenario(sc_d, slide_d);
+    }
+
+    if (scenario_id == "E" || (scenario_id == "all" && (active || start_at_id == "E"))) {
+        engine.run_scenario(sc_e, slide_e);
     }
 
     if (scenario_id == "F" || (scenario_id == "all" && (active || start_at_id == "F"))) {

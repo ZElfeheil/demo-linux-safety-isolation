@@ -49,21 +49,19 @@ RUN wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-sta
     && rm -rf busybox-static_1.37.0-10.1ubuntu3_arm64.deb /tmp/busybox-pkg \
     && file /bin/busybox-aarch64
 
-# Download aarch64 tmux and runtime libraries for rootfs
-RUN wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/t/tmux/tmux_3.4-1build1_arm64.deb \
-    && wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/libe/libevent/libevent-2.1-7t64_2.1.12-stable-8.1build1_arm64.deb \
-    && wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/n/ncurses/libncursesw6_6.4-4bluetile2_arm64.deb \
-    && wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/n/ncurses/libtinfo6_6.4-4bluetile2_arm64.deb \
-    && wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/g/glibc/libc6_2.39-0ubuntu8_arm64.deb \
+# Acquire aarch64 tmux binary using Ubuntu ports multi-arch apt index
+RUN dpkg --add-architecture arm64 \
+    && echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse" > /etc/apt/sources.list.d/arm64-ports.list \
+    && echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse" >> /etc/apt/sources.list.d/arm64-ports.list \
+    && apt-get update \
     && mkdir -p /tmp/tmux-pkg \
-    && dpkg-deb -x tmux_3.4-1build1_arm64.deb /tmp/tmux-pkg \
-    && dpkg-deb -x libevent-2.1-7t64_2.1.12-stable-8.1build1_arm64.deb /tmp/tmux-pkg \
-    && dpkg-deb -x libncursesw6_6.4-4bluetile2_arm64.deb /tmp/tmux-pkg \
-    && dpkg-deb -x libtinfo6_6.4-4bluetile2_arm64.deb /tmp/tmux-pkg \
-    && dpkg-deb -x libc6_2.39-0ubuntu8_arm64.deb /tmp/tmux-pkg \
+    && (cd /tmp/tmux-pkg && apt-get download tmux:arm64 locales:arm64 libevent-2.1-7t64:arm64 libevent-core-2.1-7t64:arm64 libevent-extra-2.1-7t64:arm64 libevent-pthreads-2.1-7t64:arm64 libncursesw6:arm64 libtinfo6:arm64 libc6:arm64 libsystemd0:arm64 libzstd1:arm64 liblzma5:arm64 liblz4-1:arm64 libcap2:arm64 libgcrypt20:arm64 libgpg-error0:arm64 libutempter0:arm64 2>/dev/null || true) \
     && mkdir -p /opt/aarch64-root \
-    && cp -rn /tmp/tmux-pkg/* /opt/aarch64-root/ 2>/dev/null || true \
-    && rm -rf *.deb /tmp/tmux-pkg
+    && for deb in /tmp/tmux-pkg/*.deb; do [ -f "$deb" ] && dpkg-deb -x "$deb" /opt/aarch64-root; done \
+    && cp /opt/aarch64-root/usr/bin/tmux /bin/tmux-aarch64 \
+    && chmod +x /bin/tmux-aarch64 \
+    && rm -rf /tmp/tmux-pkg /var/lib/apt/lists/* \
+    && file /bin/tmux-aarch64
 
 # ==============================================================================
 # Stage 2: Linux Kernel Builder (Linux 6.6 LTS Kernel Image)
@@ -88,6 +86,10 @@ RUN cd /demo/linux-6.6 \
     && echo 'EXPORT_SYMBOL_GPL(init_mm);' >> mm/init-mm.c \
     && echo '#include <linux/module.h>' >> mm/maccess.c \
     && echo 'EXPORT_SYMBOL_GPL(copy_to_kernel_nofault);' >> mm/maccess.c \
+    && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig \
+    && ./scripts/config --enable CONFIG_DEVMEM \
+    && ./scripts/config --disable CONFIG_STRICT_DEVMEM \
+    && ./scripts/config --disable CONFIG_IO_STRICT_DEVMEM \
     && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig \
     && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) Image modules \
     && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) modules_prepare

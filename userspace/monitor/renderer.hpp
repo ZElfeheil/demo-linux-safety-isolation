@@ -62,7 +62,7 @@ struct DisplayState {
 
     mutable std::mutex events_mx{};
     std::vector<EventEntry> events{};
-    static constexpr std::size_t max_events{100};
+    inline static constexpr std::size_t max_events{100};
 
     mutable std::mutex scenario_mx{};
     ScenarioInfo scenario_info{};

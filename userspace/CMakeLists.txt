@@ -10,7 +10,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Link binaries statically for initramfs standalone execution (disabled during ASan/TSan build)
 option(BUILD_STATIC "Build standalone static binaries for initramfs" ON)
-if (BUILD_STATIC AND NOT CMAKE_CXX_FLAGS MATCHES "fsanitize=")
+if (BUILD_STATIC AND NOT APPLE AND NOT CMAKE_CXX_FLAGS MATCHES "fsanitize=")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 endif()
 
@@ -54,6 +54,7 @@ add_executable(harness
     harness/module_loader.cpp
     harness/scenarios/scenario_b.cpp
     harness/scenarios/scenario_d.cpp
+    harness/scenarios/scenario_e.cpp
     harness/scenarios/scenario_f.cpp
     harness/scenarios/scenario_g.cpp
 )

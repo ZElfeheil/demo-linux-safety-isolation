@@ -76,6 +76,31 @@ private:
 template<Scenario S>
 auto PresenterEngine::run_scenario(S& scenario, const QuestionSlide& slide) -> ScenarioResult {
     ModuleLoader::cleanup_on_signal();
+
+    if (auto_mode_) {
+        // Clean execution without Q&A questions, choices, or pauses
+        std::cout << "[+] Running " << slide.title << "...\n";
+
+        notify_monitor_state("SETUP", slide);
+        auto setup_res = scenario.setup();
+        if (!setup_res) {
+            std::cerr << "[-] Setup Failed: " << setup_res.error() << "\n";
+            return ScenarioResult{ScenarioStatus::Error, {}, setup_res.error()};
+        }
+
+        notify_monitor_state("REVEALED", slide);
+        auto result = scenario.run();
+
+        std::cout << "    Result: " << ((result.status == ScenarioStatus::Passed) ? "PASSED" : "VIOLATION DETECTED / BLOCKED") << "\n";
+        if (!result.error_message.empty()) {
+            std::cout << "    Detail: " << result.error_message << "\n";
+        }
+
+        scenario.teardown();
+        notify_monitor_state("NORMAL", slide);
+        return result;
+    }
+
     // Beat 1: SETUP
     std::cout << "\n======================================================================\n";
     std::cout << "  SCENARIO SETUP: " << slide.title << "\n";
@@ -101,9 +126,7 @@ auto PresenterEngine::run_scenario(S& scenario, const QuestionSlide& slide) -> S
 
     notify_monitor_state("PAUSED", slide);
 
-    if (!auto_mode_) {
-        pause_for_presenter("[ AWAITING PRESENTER KEYPRESS ]");
-    }
+    pause_for_presenter("[ AWAITING PRESENTER KEYPRESS ]");
 
     // Beat 3: REVEAL
     std::cout << "----------------------------------------------------------------------\n";
@@ -128,7 +151,6 @@ auto PresenterEngine::run_scenario(S& scenario, const QuestionSlide& slide) -> S
 
     scenario.teardown();
     notify_monitor_state("NORMAL", slide);
-
     return result;
 }
 

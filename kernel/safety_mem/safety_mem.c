@@ -32,6 +32,7 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Safety Isolation Demo Team");
 MODULE_DESCRIPTION("ARM64 Linux 6.6 Safety Memory Isolation Module");
 MODULE_VERSION("1.0");
+MODULE_SOFTDEP("pre: ctx_monitor");
 
 /* Global Memory References & Mutex */
 static struct page *g_safety_page;
@@ -243,7 +244,7 @@ static int safety_mem_proc_show(struct seq_file *m, void *v)
 	}
 
 	seq_printf(m, "virt_addr: 0x%px\n", g_virt_addr);
-	seq_printf(m, "phys_addr: 0x%pa\n", &g_phys_addr);
+	seq_printf(m, "phys_addr: %pa\n", &g_phys_addr);
 	seq_printf(m, "value_via_vmalloc: 0x%08X\n", val_vmalloc);
 	seq_printf(m, "value_via_phys: 0x%08X\n", val_phys);
 	seq_printf(m, "ctx_protected: %d\n", protected_state);

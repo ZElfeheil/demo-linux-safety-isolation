@@ -47,16 +47,16 @@ Everything maps to a single physical analogy to make abstract kernel mechanisms 
 │                         │ ./out/Image  ./out/initramfs.cpio.gz  │
 │                         ▼                                        │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │  QEMU ARM64 (-accel hvf — near-native on Apple Silicon)    │ │
-│  │  -machine virt,iommu=smmuv3  -cpu cortex-a57  -m 512M      │ │
+│  │  Host tmux session (tmux does not run inside QEMU)         │ │
 │  │                                                            │ │
-│  │  ┌──────────────────────────────────────────────────────┐ │ │
-│  │  │  tmux Live Split Display Interface                   │ │ │
-│  │  │  ┌───────────────────────┬────────────────────────┐  │ │ │
-│  │  │  │ Left Pane: Dashboard  │ Right Pane: Harness    │  │ │ │
-│  │  │  │ (3x std::jthread TUI) │ (4-Beat Presenter UI)  │  │ │ │
-│  │  │  └───────────────────────┴────────────────────────┘  │ │ │
-│  │  └──────────────────────────────────────────────────────┘ │ │
+│  │  Pane 1                            Pane 2                   │ │
+│  │  ./env/run_qemu.sh                 ssh -p 2222 root@...     │ │
+│  │         │                                  │                │ │
+│  │         └──────────────┬───────────────────┘                │ │
+│  │                        ▼                                    │ │
+│  │  QEMU ARM64 guest                                           │ │
+│  │  ├── serial shell: harness --scenario B/F                   │ │
+│  │  └── SSH shell: monitor                                     │ │
 │  └────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -95,6 +95,7 @@ Everything maps to a single physical analogy to make abstract kernel mechanisms 
 * **Docker Desktop** (with Compose)
 * **macOS** (Apple Silicon M1/M2/M3 for `-accel hvf`) or **Linux ARM64/x86_64**
 * **QEMU** (`qemu-system-aarch64`)
+* **tmux on the host** (`brew install tmux` on macOS)
 
 ### 1. Cross-Compile Build (Inside Docker)
 Builds Linux 6.6 LTS kernel, out-of-tree C kernel modules, C++20 userspace binaries, and rootfs image in one command:
@@ -104,17 +105,47 @@ docker compose run build
 # Generates out/Image and out/initramfs.cpio.gz
 ```
 
-### 2. Launch QEMU VM
+### 2. Create the Host tmux Layout
+
+Run tmux in the macOS/Linux host terminal, not in the QEMU guest:
+
+```bash
+tmux new -s safety-demo
+```
+
+Split the tmux window vertically into side-by-side panes with `Ctrl-B`, then `%`.
+Use `Ctrl-B`, then an arrow key to switch panes.
+
+### 3. Launch QEMU in Pane 1
+
 ```bash
 ./env/run_qemu.sh
 ```
-*Auto-detects host architecture and selects `-accel hvf` on macOS or `-accel kvm/tcg` on Linux.*
 
-### 3. Run a Scenario (Inside QEMU)
+Wait until the BusyBox guest displays its `/ #` shell prompt. The launcher automatically forwards host port `2222` to guest port `22`.
+
+### 4. Connect and Start the Monitor in Pane 2
+
+From the second **host** pane:
+
+```bash
+ssh -p 2222 root@127.0.0.1
+monitor
+```
+
+Accept the SSH host key if prompted. If the connection is refused, confirm that QEMU is still running in pane 1 and that the guest has reached its shell prompt.
+
+### 5. Run a Scenario in Pane 1
+
+Return to pane 1 with `Ctrl-B`, then the left arrow, and run:
+
 ```bash
 harness --scenario B
+# or
+harness --scenario F
 ```
-*The scenario runs continuously through setup, action, and teardown. Run `monitor` from a second SSH pane for the live dashboard.*
+
+The monitor in pane 2 displays the safety-memory state and live kernel trace while the scenario runs. Stop the monitor with `Ctrl-C`. Exit QEMU with `Ctrl-A`, then `X`, or run `poweroff` inside the guest.
 
 ---
 
@@ -163,7 +194,7 @@ demo-linux-safety-isolation/
 └── userspace/                      # Modern C++20 Applications
     ├── common/                     # Concepts, ProcReader, PhysicalMemoryView
     ├── monitor/                    # 3-jthread live dashboard
-    ├── harness/                    # 4-beat presenter interface & scenarios
+    ├── harness/                    # Scenario lifecycle runner and implementations
     ├── devmem/                     # Physical memory inspector
     └── analysis/                   # Comparison table generator
 ```

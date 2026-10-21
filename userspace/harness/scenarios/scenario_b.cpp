@@ -1,5 +1,6 @@
-#include "scenario_b.hpp"
-#include "../../common/proc_reader.hpp"
+#include "harness/scenarios/scenario_b.hpp"
+#include "common/proc_reader.hpp"
+#include "common/demo_constants.hpp"
 #include <chrono>
 #include <thread>
 
@@ -15,11 +16,12 @@ auto ScenarioB::setup() -> safety::expected<void, std::string> {
 auto ScenarioB::run() -> ScenarioResult {
     auto start_ts = std::chrono::high_resolution_clock::now();
 
-    if (auto res = loader_.load("modules/rogue_thread.ko", "attack_mode=0 interval_ms=100"); !res) {
+    if (auto res = loader_.load("modules/rogue_thread.ko",
+                                std::string(demo::kRogueWriteModuleParams)); !res) {
         return ScenarioResult{ScenarioStatus::Error, {}, res.error()};
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    std::this_thread::sleep_for(demo::kThreadAttackObservationTime);
 
     ProcReader reader("/proc/safety_mem_status");
     auto content = reader.read();
@@ -27,7 +29,8 @@ auto ScenarioB::run() -> ScenarioResult {
     auto end_ts = std::chrono::high_resolution_clock::now();
     uint64_t latency = std::chrono::duration_cast<std::chrono::nanoseconds>(end_ts - start_ts).count();
 
-    if (content && (content->find("0xDEADDEAD") != std::string::npos || content->find("CORRUPTED") != std::string::npos)) {
+    if (content && (content->find(demo::kCorruptSentinelStatus) != std::string::npos ||
+                    content->find("CORRUPTED") != std::string::npos)) {
         return ScenarioResult{ScenarioStatus::Passed, {latency, latency, 0}, ""};
     }
 

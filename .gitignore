@@ -28,3 +28,6 @@ initramfs/
 .DS_Store
 .vscode/
 .idea/
+
+# Local agent workspace
+.agent/

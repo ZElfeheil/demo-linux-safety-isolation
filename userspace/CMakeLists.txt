@@ -19,24 +19,27 @@ add_compile_options(-Wall -Wextra -Werror -Wpedantic)
 
 # Binaries destination directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(SAFETY_USERSPACE_INCLUDE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 
-# Common headers library target
+# Common headers library target. Consumers include project headers from the
+# userspace root, for example "common/scenario.hpp" and
+# "harness/module_loader.hpp".
 add_library(common INTERFACE)
-target_include_directories(common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(common INTERFACE
+    $<BUILD_INTERFACE:${SAFETY_USERSPACE_INCLUDE_ROOT}>
+)
 
 # Executable: devmem
 add_executable(devmem
     devmem/main.cpp
     devmem/phys_view.cpp
 )
-target_include_directories(devmem PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(devmem PRIVATE common)
 
 # Executable: analysis
 add_executable(analysis
     analysis/main.cpp
 )
-target_include_directories(analysis PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(analysis PRIVATE common)
 
 # Executable: monitor
@@ -44,13 +47,11 @@ add_executable(monitor
     monitor/main.cpp
     monitor/renderer.cpp
 )
-target_include_directories(monitor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(monitor PRIVATE common)
 
 # Executable: harness
 add_executable(harness
     harness/main.cpp
-    harness/interactive.cpp
     harness/module_loader.cpp
     harness/scenarios/scenario_b.cpp
     harness/scenarios/scenario_d.cpp
@@ -58,5 +59,4 @@ add_executable(harness
     harness/scenarios/scenario_f.cpp
     harness/scenarios/scenario_g.cpp
 )
-target_include_directories(harness PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(harness PRIVATE common)

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include "expected.hpp"
+#include "common/expected.hpp"
 
 namespace safety {
 

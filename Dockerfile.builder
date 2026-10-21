@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     file \
     tar \
     gzip \
+    locales \
     sparse \
     libsqlite3-dev \
     ca-certificates \
@@ -42,22 +43,26 @@ RUN (git clone --depth 1 https://github.com/error27/smatch.git /tmp/smatch || gi
     && rm -rf /tmp/smatch || echo "Warning: smatch build skipped"
 
 # Download aarch64 64-bit static busybox binary package for target VM rootfs
-RUN wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.37.0-10.1ubuntu3_arm64.deb \
-    && dpkg-deb -x busybox-static_1.37.0-10.1ubuntu3_arm64.deb /tmp/busybox-pkg \
-    && cp /tmp/busybox-pkg/usr/bin/busybox /bin/busybox-aarch64 \
+RUN wget -q https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.37.0-7ubuntu1_arm64.deb \
+    && dpkg-deb -x busybox-static_1.37.0-7ubuntu1_arm64.deb /tmp/busybox-pkg \
+    && BUSYBOX_BIN="$(find /tmp/busybox-pkg -type f -name busybox -print -quit)" \
+    && test -n "${BUSYBOX_BIN}" \
+    && cp "${BUSYBOX_BIN}" /bin/busybox-aarch64 \
     && chmod +x /bin/busybox-aarch64 \
-    && rm -rf busybox-static_1.37.0-10.1ubuntu3_arm64.deb /tmp/busybox-pkg \
+    && rm -rf busybox-static_1.37.0-7ubuntu1_arm64.deb /tmp/busybox-pkg \
     && file /bin/busybox-aarch64
 
-# Acquire aarch64 tmux binary using Ubuntu ports multi-arch apt index
+# Acquire aarch64 tmux and Dropbear SSH binaries using Ubuntu ports multi-arch apt index
 RUN dpkg --add-architecture arm64 \
     && echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse" > /etc/apt/sources.list.d/arm64-ports.list \
     && echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse" >> /etc/apt/sources.list.d/arm64-ports.list \
     && apt-get update \
     && mkdir -p /tmp/tmux-pkg \
-    && (cd /tmp/tmux-pkg && apt-get download tmux:arm64 locales:arm64 libevent-2.1-7t64:arm64 libevent-core-2.1-7t64:arm64 libevent-extra-2.1-7t64:arm64 libevent-pthreads-2.1-7t64:arm64 libncursesw6:arm64 libtinfo6:arm64 libc6:arm64 libsystemd0:arm64 libzstd1:arm64 liblzma5:arm64 liblz4-1:arm64 libcap2:arm64 libgcrypt20:arm64 libgpg-error0:arm64 libutempter0:arm64 2>/dev/null || true) \
+    && (cd /tmp/tmux-pkg && apt-get download tmux:arm64 dropbear-bin:arm64 locales:arm64 libevent-2.1-7t64:arm64 libevent-core-2.1-7t64:arm64 libevent-extra-2.1-7t64:arm64 libevent-pthreads-2.1-7t64:arm64 libncursesw6:arm64 libtinfo6:arm64 libc6:arm64 libsystemd0:arm64 libzstd1:arm64 liblzma5:arm64 liblz4-1:arm64 libcap2:arm64 libgcrypt20:arm64 libgpg-error0:arm64 libutempter0:arm64 libtomcrypt1:arm64 libtommath1:arm64 zlib1g:arm64 2>/dev/null || true) \
     && mkdir -p /opt/aarch64-root \
     && for deb in /tmp/tmux-pkg/*.deb; do [ -f "$deb" ] && dpkg-deb -x "$deb" /opt/aarch64-root; done \
+    && mkdir -p /opt/aarch64-root/usr/lib/locale \
+    && localedef --no-archive -i C -f UTF-8 /opt/aarch64-root/usr/lib/locale/C.UTF-8 \
     && cp /opt/aarch64-root/usr/bin/tmux /bin/tmux-aarch64 \
     && chmod +x /bin/tmux-aarch64 \
     && rm -rf /tmp/tmux-pkg /var/lib/apt/lists/* \
@@ -74,8 +79,9 @@ RUN wget -q https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.tar.xz \
     && tar xf linux-6.6.tar.xz \
     && rm linux-6.6.tar.xz
 
-# Copy target kernel configuration
-COPY env/kernel.config /demo/linux-6.6/.config
+# Copy the project-specific options as a configuration fragment.  The base
+# defconfig is generated first below, then this fragment is merged into it.
+COPY env/kernel.config /demo/kernel-demo.config
 
 # Configure and compile Linux kernel image for ARM64 with exported symbols for demo modules
 RUN cd /demo/linux-6.6 \
@@ -87,6 +93,7 @@ RUN cd /demo/linux-6.6 \
     && echo '#include <linux/module.h>' >> mm/maccess.c \
     && echo 'EXPORT_SYMBOL_GPL(copy_to_kernel_nofault);' >> mm/maccess.c \
     && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig \
+    && ./scripts/kconfig/merge_config.sh -m .config /demo/kernel-demo.config \
     && ./scripts/config --enable CONFIG_DEVMEM \
     && ./scripts/config --disable CONFIG_STRICT_DEVMEM \
     && ./scripts/config --disable CONFIG_IO_STRICT_DEVMEM \
@@ -152,6 +159,8 @@ RUN mkdir -p /demo/rootfs/modules /demo/rootfs/bin \
 # ==============================================================================
 FROM scratch AS artifacts
 COPY --from=kernel-builder /demo/linux-6.6/arch/arm64/boot/Image /Image
+COPY --from=kernel-builder /demo/linux-6.6/vmlinux /vmlinux
+COPY --from=module-builder /demo/kernel/ /kernel-modules/
 COPY --from=rootfs-builder /demo/out/initramfs.cpio.gz /initramfs.cpio.gz
 
 # ==============================================================================

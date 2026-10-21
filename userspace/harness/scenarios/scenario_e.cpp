@@ -1,5 +1,6 @@
-#include "scenario_e.hpp"
-#include "../../common/proc_reader.hpp"
+#include "harness/scenarios/scenario_e.hpp"
+#include "common/proc_reader.hpp"
+#include "common/demo_constants.hpp"
 #include <chrono>
 #include <fstream>
 #include <thread>
@@ -26,11 +27,11 @@ auto ScenarioE::run() -> ScenarioResult {
     // SMMU is active but this is a CPU write — SMMU cannot see it.
     std::ofstream bad_driver("/proc/bad_driver_ts");
     if (bad_driver.is_open()) {
-        bad_driver << "3";
+        bad_driver << demo::kLinearMapAttackCommand;
         bad_driver.flush();
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(demo::kAttackSettleTime);
 
     // Read safety_mem_status — expect corruption via linear map despite SMMU being active
     ProcReader status_reader("/proc/safety_mem_status");
@@ -43,7 +44,7 @@ auto ScenarioE::run() -> ScenarioResult {
     auto end_ts = std::chrono::high_resolution_clock::now();
     uint64_t latency = std::chrono::duration_cast<std::chrono::nanoseconds>(end_ts - start_ts).count();
 
-    bool memory_corrupted = content && (content->find("0xBAD30003") != std::string::npos ||
+    bool memory_corrupted = content && (content->find(demo::kLinearBypassStatus) != std::string::npos ||
                                          content->find("CORRUPTED") != std::string::npos);
     bool smmu_silent = !smmu_log || smmu_log->find("FAULT") == std::string::npos;
 

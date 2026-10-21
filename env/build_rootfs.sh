@@ -11,15 +11,27 @@ MODULES_SRC="${MODULES_SRC:-/demo/kernel}"
 BIN_SRC="${BIN_SRC:-/demo/build/bin}"
 
 echo "[*] Creating RootFS directory structure at ${ROOTFS_DIR}..."
-mkdir -p "${ROOTFS_DIR}"/{bin,sbin,etc,proc,sys,dev,dev/pts,tmp,modules,results,root,mnt/host,usr/bin,usr/sbin,lib,usr/lib,lib64}
+mkdir -p "${ROOTFS_DIR}"/{bin,sbin,etc,etc/dropbear,proc,sys,dev,dev/pts,tmp,modules,results,root,mnt/host,usr/bin,usr/sbin,lib,usr/lib,lib64,var/run,var/log}
 
 if [[ -d /opt/aarch64-root ]]; then
     echo "[*] Copying ARM64 shared libraries and runtime files..."
     cp -rn /opt/aarch64-root/* "${ROOTFS_DIR}/" 2>/dev/null || true
 fi
 
+# Dropbear's crypto dependencies are present in the builder sysroot but are
+# not all part of the packages extracted into /opt/aarch64-root.
+for runtime_lib in libcrypt.so.1 libgmp.so.10; do
+    for lib_path in "/lib/aarch64-linux-gnu/${runtime_lib}" "/usr/lib/aarch64-linux-gnu/${runtime_lib}" "/lib/${runtime_lib}"; do
+        if [[ -f "${lib_path}" ]]; then
+            mkdir -p "${ROOTFS_DIR}/lib/aarch64-linux-gnu"
+            cp -L "${lib_path}" "${ROOTFS_DIR}/lib/aarch64-linux-gnu/${runtime_lib}"
+            break
+        fi
+    done
+done
+
 if [[ -f "${ROOTFS_DIR}/usr/bin/tmux" ]]; then
-    echo "[+] Setting up /usr/bin/tmux_real and /bin/tmux UTF-8 wrapper..."
+    echo "[+] Setting up /usr/bin/tmux_real and /bin/tmux locale wrapper..."
     mv -f "${ROOTFS_DIR}/usr/bin/tmux" "${ROOTFS_DIR}/usr/bin/tmux_real"
     chmod 4755 "${ROOTFS_DIR}/usr/bin/tmux_real"
 
@@ -28,7 +40,7 @@ if [[ -f "${ROOTFS_DIR}/usr/bin/tmux" ]]; then
 export LANG=C.UTF-8
 export LC_ALL=C.UTF-8
 export LC_CTYPE=C.UTF-8
-exec /usr/bin/tmux_real -u "$@"
+exec /usr/bin/tmux_real "$@"
 TMUX_SH
     chmod +x "${ROOTFS_DIR}/bin/tmux"
     cp -f "${ROOTFS_DIR}/bin/tmux" "${ROOTFS_DIR}/usr/bin/tmux"
@@ -88,9 +100,18 @@ fi
 
 chmod 4755 "${ROOTFS_DIR}/bin/busybox"
 # Create symlinks for standard UNIX commands (explicitly to support cross-building without qemu-user)
-for cmd in sh ash bash ls cat echo mount umount mdev insmod rmmod modprobe dmesg clear ps kill sleep mkdir touch chmod chown sync poweroff reboot halt uname du find grep; do
+for cmd in sh ash bash ls cat echo mount umount mdev insmod rmmod modprobe dmesg clear ps kill sleep mkdir touch chmod chown sync poweroff reboot halt uname du find grep ifconfig route ip; do
     ln -sf busybox "${ROOTFS_DIR}/bin/${cmd}"
 done
+
+# Minimal root account used only by the local QEMU SSH forwarding endpoint.
+cat << 'PASSWD_EOF' > "${ROOTFS_DIR}/etc/passwd"
+root:x:0:0:root:/root:/bin/sh
+PASSWD_EOF
+cat << 'SHADOW_EOF' > "${ROOTFS_DIR}/etc/shadow"
+root::19793:0:99999:7:::
+SHADOW_EOF
+chmod 600 "${ROOTFS_DIR}/etc/shadow"
 
 # ---------------------------------------------------------------------
 # 2. Copy Kernel Modules (.ko)
@@ -261,10 +282,21 @@ mount -t devtmpfs devtmpfs /dev
 mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts
 mount -t debugfs debugfs /sys/kernel/debug 2>/dev/null || true
+mkdir -p /sys/kernel/tracing
+mount -t tracefs tracefs /sys/kernel/tracing 2>/dev/null || true
 
 # Populate device nodes and PTY pseudo-terminals
 [ -c /dev/ptmx ] || mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -sf /dev/pts/ptmx /dev/ptmx 2>/dev/null || true
 mdev -s 2>/dev/null || true
+
+# Configure QEMU user networking and start the lightweight SSH server.
+ifconfig lo up 2>/dev/null || true
+ifconfig eth0 10.0.2.15 netmask 255.255.255.0 up 2>/dev/null || true
+route add default gw 10.0.2.2 eth0 2>/dev/null || true
+if command -v dropbear >/dev/null 2>&1; then
+    mkdir -p /etc/dropbear /var/run
+    dropbear -R -B -E -p 22 -P /var/run/dropbear.pid
+fi
 
 # Mount hostshare via 9p if VirtFS is configured
 mkdir -p /mnt/host
@@ -278,13 +310,14 @@ echo "==========================================================================
 echo "  Kernel: $(uname -r)  | Architecture: $(uname -m)"
 echo "  Modules path: /modules/"
 echo "  Binaries path: /bin/ (harness, monitor, devmem, analysis)"
+echo "  SSH monitor: ssh -p 2222 root@127.0.0.1"
 echo ""
-echo "  To launch interactive demo flow:"
-echo "    # harness --interactive"
+echo "  Run a scenario:"
+echo "    # harness --scenario B"
 echo "=========================================================================="
 echo ""
 
-# Spawn interactive login shell with controlling TTY (cttyhack for tmux job control)
+# Start a login shell with a controlling TTY.
 export ENV=/etc/profile
 exec cttyhack /bin/sh -l
 EOF

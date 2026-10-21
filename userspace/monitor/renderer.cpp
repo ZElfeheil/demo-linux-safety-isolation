@@ -1,4 +1,4 @@
-#include "renderer.hpp"
+#include "monitor/renderer.hpp"
 #include <algorithm>
 #include <chrono>
 #include <format>
@@ -8,20 +8,41 @@ namespace safety::monitor {
 
 namespace {
 
-constexpr uint16_t kDefaultCols = 80;
-constexpr uint16_t kDefaultRows = 24;
 constexpr uint16_t kMinCols = 40;
 constexpr uint16_t kMinRows = 12;
 constexpr std::size_t kMinSideW = 18;
-constexpr std::size_t kFallbackCardW = 38;
+constexpr unsigned char kUtf8TwoByteMask = 0xE0;
+constexpr unsigned char kUtf8TwoByteLead = 0xC0;
+constexpr unsigned char kUtf8ThreeByteMask = 0xF0;
+constexpr unsigned char kUtf8ThreeByteLead = 0xE0;
+constexpr unsigned char kUtf8FourByteMask = 0xF8;
+constexpr unsigned char kUtf8FourByteLead = 0xF0;
+constexpr std::size_t kUtf8TwoByteLength = 2;
+constexpr std::size_t kUtf8ThreeByteLength = 3;
+constexpr std::size_t kUtf8FourByteLength = 4;
+constexpr std::size_t kLeftPanelRatioNumerator = 2;
+constexpr std::size_t kPanelRatioDenominator = 5;
+constexpr std::size_t kPanelBordersWidth = 3;
+constexpr std::size_t kDashboardFrameRows = 4;
+
+enum class SnapshotRow : std::size_t {
+    BeforeHeading,
+    BeforeValues,
+    BeforePageTable,
+    BeforeProtection,
+    AfterHeading,
+    AfterValues,
+    AfterPageTable,
+    AfterProtection,
+};
 
 std::size_t visual_len(std::string_view s) noexcept {
     std::size_t len = 0;
     for (std::size_t i = 0; i < s.size(); ) {
         auto c = static_cast<unsigned char>(s[i]);
-        if ((c & 0xE0) == 0xC0) i += 2;
-        else if ((c & 0xF0) == 0xE0) i += 3;
-        else if ((c & 0xF8) == 0xF0) i += 4;
+        if ((c & kUtf8TwoByteMask) == kUtf8TwoByteLead) i += kUtf8TwoByteLength;
+        else if ((c & kUtf8ThreeByteMask) == kUtf8ThreeByteLead) i += kUtf8ThreeByteLength;
+        else if ((c & kUtf8FourByteMask) == kUtf8FourByteLead) i += kUtf8FourByteLength;
         else i += 1;
         len += 1;
     }
@@ -45,9 +66,9 @@ std::string pad_line(std::string_view text, std::size_t target_width) {
         std::size_t cur_vlen = 0;
         while (byte_idx < text.size() && cur_vlen < target_width) {
             auto c = static_cast<unsigned char>(text[byte_idx]);
-            if ((c & 0xE0) == 0xC0) byte_idx += 2;
-            else if ((c & 0xF0) == 0xE0) byte_idx += 3;
-            else if ((c & 0xF8) == 0xF0) byte_idx += 4;
+            if ((c & kUtf8TwoByteMask) == kUtf8TwoByteLead) byte_idx += kUtf8TwoByteLength;
+            else if ((c & kUtf8ThreeByteMask) == kUtf8ThreeByteLead) byte_idx += kUtf8ThreeByteLength;
+            else if ((c & kUtf8FourByteMask) == kUtf8FourByteLead) byte_idx += kUtf8FourByteLength;
             else byte_idx += 1;
             cur_vlen += 1;
         }
@@ -73,7 +94,7 @@ TerminalSize TerminalGuard::get_size() noexcept {
     if (::ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 && ws.ws_row > 0) {
         return TerminalSize{ws.ws_col, ws.ws_row};
     }
-    return TerminalSize{kDefaultCols, kDefaultRows};
+    return TerminalSize{kDefaultTerminalCols, kDefaultTerminalRows};
 }
 
 void Renderer::render(std::string& out_buf, TerminalSize size) const {
@@ -82,17 +103,8 @@ void Renderer::render(std::string& out_buf, TerminalSize size) const {
 
     if (state_ == nullptr) return;
 
-    switch (state_->mode.load()) {
-        case DashboardMode::Normal:
-            render_normal(out_buf, size);
-            break;
-        case DashboardMode::Paused:
-            render_paused(out_buf, size);
-            break;
-        case DashboardMode::Revealed:
-            render_revealed(out_buf, size);
-            break;
-    }
+    // The monitor is an operational view of memory state and kernel events.
+    render_normal(out_buf, size);
 }
 
 void Renderer::render_normal(std::string& out, TerminalSize size) const {
@@ -101,9 +113,13 @@ void Renderer::render_normal(std::string& out, TerminalSize size) const {
     const uint16_t cols = (size.cols < kMinCols) ? kMinCols : size.cols;
     const uint16_t rows = (size.rows < kMinRows) ? kMinRows : size.rows;
 
-    const std::size_t left_w = (cols / 2 > 2) ? ((cols / 2) - 1) : kMinSideW;
-    const std::size_t right_w = (cols > left_w + 3) ? (cols - left_w - 3) : kMinSideW;
-    const auto main_h = static_cast<std::size_t>(rows - 4);
+    const std::size_t panel_width = cols - kPanelBordersWidth;
+    const std::size_t desired_left_w =
+        panel_width * kLeftPanelRatioNumerator / kPanelRatioDenominator;
+    const std::size_t left_w = std::clamp(
+        desired_left_w, kMinSideW, panel_width - kMinSideW);
+    const std::size_t right_w = panel_width - left_w;
+    const auto main_h = static_cast<std::size_t>(rows - kDashboardFrameRows);
 
     // Header line: ┌─ SAFETY MEMORY STATE ─┬─ KERNEL EVENT STREAM ─┐
     const std::string left_title = " SAFETY MEMORY STATE ";
@@ -117,22 +133,35 @@ void Renderer::render_normal(std::string& out, TerminalSize size) const {
     out.append(top_hdr);
 
     // Snapshot state
-    const uint32_t vm_val = state_->val_vmalloc.load();
-    const uint32_t ph_val = state_->val_phys.load();
-    const uint64_t vaddr = state_->virt_addr.load();
-    const uint64_t paddr = state_->phys_addr.load();
-    const bool ctx_on = state_->ctx_protected.load();
-    const bool smmu_on = state_->smmu_active.load();
+    struct SnapshotView {
+        uint32_t vmalloc_value;
+        uint32_t phys_value;
+        uint64_t mapping_entry;
+        bool writable;
+        bool ctx_protected;
+        bool smmu_active;
+        std::string mapping_level;
+        std::string status;
+    };
+    const auto snapshot_view = [](const ComparisonSnapshot& snapshot) {
+        SnapshotView view{
+            .vmalloc_value = snapshot.val_vmalloc.load(),
+            .phys_value = snapshot.val_phys.load(),
+            .mapping_entry = snapshot.mapping_entry.load(),
+            .writable = snapshot.mapping_writable.load(),
+            .ctx_protected = snapshot.ctx_protected.load(),
+            .smmu_active = snapshot.smmu_active.load(),
+            .mapping_level = {},
+            .status = {}
+        };
+        std::lock_guard lock(snapshot.mx);
+        view.mapping_level = snapshot.mapping_level;
+        view.status = snapshot.status;
+        return view;
+    };
 
-    std::string m_owner;
-    std::string status;
-    {
-        std::lock_guard lock(state_->status_mx);
-        m_owner = state_->mutex_owner;
-        status = state_->status_str;
-    }
-
-    const bool is_corrupt = (vm_val != ph_val) || (status == "CORRUPTED");
+    const SnapshotView before = snapshot_view(state_->before);
+    const SnapshotView after = snapshot_view(state_->after);
 
     std::vector<EventEntry> ev_copy;
     {
@@ -142,14 +171,17 @@ void Renderer::render_normal(std::string& out, TerminalSize size) const {
 
     for (std::size_t row = 0; row < main_h; ++row) {
         std::string left_text;
-        if (row == 0) left_text = std::format(" virt  0x{:016x}", vaddr);
-        else if (row == 1) left_text = std::format(" phys  0x{:016x}", paddr);
-        else if (row == 3) left_text = std::format(" via vmalloc: 0x{:08X}  {}", vm_val, (vm_val == 0x5AFE1234 ? "[OK]" : "[FAIL]"));
-        else if (row == 4) left_text = std::format(" via phys:    0x{:08X}  {}", ph_val, (ph_val == 0x5AFE1234 ? "[OK]" : "[FAIL]"));
-        else if (row == 6) left_text = std::format(" CTX protect: {}", ctx_on ? "ON" : "OFF");
-        else if (row == 7) left_text = std::format(" SMMU:        {}", smmu_on ? "ON" : "OFF");
-        else if (row == 8) left_text = std::format(" Mutex Owner: {}", m_owner);
-        else if (row == 9) left_text = std::format(" Status:      {}", is_corrupt ? "CORRUPTED" : status);
+        switch (static_cast<SnapshotRow>(row)) {
+            case SnapshotRow::BeforeHeading: left_text = " BEFORE ACTION"; break;
+            case SnapshotRow::BeforeValues: left_text = std::format(" val: VM 0x{:08X} / PHYS 0x{:08X}", before.vmalloc_value, before.phys_value); break;
+            case SnapshotRow::BeforePageTable: left_text = std::format(" attack PT: {} {} 0x{:016X}", before.mapping_level, before.writable ? "RW" : "RO", before.mapping_entry); break;
+            case SnapshotRow::BeforeProtection: left_text = std::format(" CTX: {}  SMMU: {}  {}", before.ctx_protected ? "ON" : "OFF", before.smmu_active ? "ON" : "OFF", before.status); break;
+            case SnapshotRow::AfterHeading: left_text = " AFTER ACTION"; break;
+            case SnapshotRow::AfterValues: left_text = std::format(" val: VM 0x{:08X} / PHYS 0x{:08X}", after.vmalloc_value, after.phys_value); break;
+            case SnapshotRow::AfterPageTable: left_text = std::format(" attack PT: {} {} 0x{:016X}", after.mapping_level, after.writable ? "RW" : "RO", after.mapping_entry); break;
+            case SnapshotRow::AfterProtection: left_text = std::format(" CTX: {}  SMMU: {}  {}", after.ctx_protected ? "ON" : "OFF", after.smmu_active ? "ON" : "OFF", after.status); break;
+            default: break;
+        }
 
         std::string right_text;
         if (row < ev_copy.size()) {
@@ -178,78 +210,6 @@ void Renderer::render_normal(std::string& out, TerminalSize size) const {
 
     // Bottom border: └─────────────┘
     out.append("└" + make_hline("─", total_inner_w) + "┘\n");
-}
-
-void Renderer::render_paused(std::string& out, TerminalSize size) const {
-    if (state_ == nullptr) return;
-
-    ScenarioInfo s_info;
-    {
-        std::lock_guard lock(state_->scenario_mx);
-        s_info = state_->scenario_info;
-    }
-
-    const std::size_t w = (size.cols > 4) ? static_cast<std::size_t>(size.cols - 2) : kFallbackCardW;
-    const std::string header_title = std::format(" ⏸  {} — {} ", s_info.id, s_info.title);
-    const std::size_t fill = (w > visual_len(header_title)) ? (w - visual_len(header_title)) : 0;
-
-    out.append("┌" + make_hline("─", fill / 2) + header_title + make_hline("─", fill - fill / 2) + "┐\n");
-    out.append("│" + pad_line(" SETUP:", w) + "│\n");
-    out.append("│" + pad_line("   " + s_info.setup_text, w) + "│\n");
-    out.append("│" + pad_line("", w) + "│\n");
-    out.append("│" + pad_line(" ❓ QUESTION: " + s_info.question_text, w) + "│\n");
-    out.append("│" + pad_line("", w) + "│\n");
-
-    for (const auto& opt : s_info.options) {
-        out.append("│" + pad_line("    " + opt, w) + "│\n");
-    }
-
-    out.append("│" + pad_line("", w) + "│\n");
-
-    const std::string banner = "[ AWAITING PRESENTER ]";
-    const std::size_t b_fill = (w > visual_len(banner)) ? (w - visual_len(banner)) : 0;
-    out.append("│" + make_hline(" ", b_fill / 2) + banner + make_hline(" ", b_fill - b_fill / 2) + "│\n");
-
-    out.append("└" + make_hline("─", w) + "┘\n");
-}
-
-void Renderer::render_revealed(std::string& out, TerminalSize size) const {
-    if (state_ == nullptr) return;
-
-    ScenarioInfo s_info;
-    {
-        std::lock_guard lock(state_->scenario_mx);
-        s_info = state_->scenario_info;
-    }
-
-    const std::size_t w = (size.cols > 4) ? static_cast<std::size_t>(size.cols - 2) : kFallbackCardW;
-    const std::string header_title = std::format(" ✓  {} — REVEALED   Answer: {} ✓ ", s_info.id, s_info.correct_option);
-    const std::size_t fill = (w > visual_len(header_title)) ? (w - visual_len(header_title)) : 0;
-
-    out.append("┌" + make_hline("─", fill / 2) + header_title + make_hline("─", fill - fill / 2) + "┐\n");
-
-    const uint32_t vm_val = state_->val_vmalloc.load();
-    const uint32_t ph_val = state_->val_phys.load();
-
-    const std::string state_summary = std::format("  MEMORY DIVERGENCE: via vmalloc=0x{:08X} | via phys=0x{:08X}", vm_val, ph_val);
-    out.append("│" + pad_line(state_summary, w) + "│\n");
-    out.append("├" + make_hline("─", w) + "┤\n");
-    out.append("│" + pad_line(" EXPLANATION:", w) + "│\n");
-
-    // Split multi-line explanation by newline
-    std::size_t pos = 0;
-    const std::string exp = s_info.explanation;
-    while (pos < exp.size()) {
-        const std::size_t next = exp.find('\n', pos);
-        const std::string line_str = (next == std::string::npos) ? exp.substr(pos) : exp.substr(pos, next - pos);
-        out.append("│" + pad_line("   " + line_str, w) + "│\n");
-        if (next == std::string::npos) {
-            break;
-        }
-        pos = next + 1;
-    }
-
-    out.append("└" + make_hline("─", w) + "┘\n");
 }
 
 } // namespace safety::monitor

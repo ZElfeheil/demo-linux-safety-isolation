@@ -22,9 +22,10 @@
 #include <linux/slab.h>
 #include <asm/ptrace.h>
 
+#include "../demo_constants.h"
+
 #define MODULE_NAME "ctx_monitor"
 #define PROC_FILENAME "ctx_monitor_log"
-#define MAX_LOG_ENTRIES 128
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Safety Isolation Demo Team");
@@ -41,7 +42,7 @@ struct fault_log_entry {
 	int trap_nr;
 };
 
-static struct fault_log_entry log_ring[MAX_LOG_ENTRIES];
+static struct fault_log_entry log_ring[DEMO_LOG_CAPACITY];
 static size_t log_head;
 static size_t log_count;
 static DEFINE_SPINLOCK(log_lock);
@@ -49,10 +50,17 @@ static DEFINE_SPINLOCK(log_lock);
 static unsigned long protected_range_start;
 static unsigned long protected_range_end;
 
+/**
+ * @brief Configure the address range reported as safety-critical.
+ * @param start Inclusive start virtual address of the protected range.
+ * @param end Exclusive end virtual address of the protected range.
+ */
 void ctx_monitor_set_protected_range(unsigned long start, unsigned long end)
 {
 	unsigned long flags;
 
+	/* spin_lock_irqsave() protects state shared with exception context and also
+	 * prevents a local interrupt from re-entering the same critical section. */
 	spin_lock_irqsave(&log_lock, flags);
 	protected_range_start = start;
 	protected_range_end = end;
@@ -62,25 +70,29 @@ void ctx_monitor_set_protected_range(unsigned long start, unsigned long end)
 }
 EXPORT_SYMBOL_GPL(ctx_monitor_set_protected_range);
 
+/** @brief Append a fault observation to the monitor's bounded ring buffer. */
 static void log_fault_event(struct pt_regs *regs, unsigned long fault_addr,
 			    long err, int trapnr)
 {
 	unsigned long flags;
 	struct fault_log_entry *entry;
 
+	/* Fault callbacks cannot sleep, so use the IRQ-safe spinlock rather than a mutex. */
 	spin_lock_irqsave(&log_lock, flags);
 
 	entry = &log_ring[log_head];
+	/* The fast time accessor is suitable for this non-sleeping diagnostic path. */
 	entry->timestamp_ns = ktime_get_real_fast_ns();
 	entry->pc = regs ? regs->pc : 0;
 	entry->fault_addr = fault_addr;
+	/* current identifies the task executing when the exception was reported. */
 	entry->pid = current->pid;
 	get_task_comm(entry->comm, current);
 	entry->err_code = err;
 	entry->trap_nr = trapnr;
 
-	log_head = (log_head + 1) % MAX_LOG_ENTRIES;
-	if (log_count < MAX_LOG_ENTRIES)
+	log_head = (log_head + 1) % DEMO_LOG_CAPACITY;
+	if (log_count < DEMO_LOG_CAPACITY)
 		log_count++;
 
 	spin_unlock_irqrestore(&log_lock, flags);
@@ -89,6 +101,13 @@ static void log_fault_event(struct pt_regs *regs, unsigned long fault_addr,
 		(unsigned long long)(regs ? regs->pc : 0), fault_addr, current->pid, current->comm);
 }
 
+/**
+ * @brief Observe kernel exceptions and log faults in the protected range.
+ * @param nb Registered notifier block.
+ * @param val Exception notification value.
+ * @param data Architecture-specific die notification payload.
+ * @return NOTIFY_DONE after inspecting the notification.
+ */
 static int ctx_die_notifier_cb(struct notifier_block *nb, unsigned long val,
 			       void *data)
 {
@@ -117,13 +136,16 @@ static struct notifier_block ctx_die_nb = {
 	.priority = INT_MAX,
 };
 
+/** @brief Render the bounded fault history through procfs. */
 static int ctx_monitor_proc_show(struct seq_file *m, void *v)
 {
 	unsigned long flags;
 	size_t count, i;
 	struct fault_log_entry *snapshot;
 
-	snapshot = kmalloc_array(MAX_LOG_ENTRIES, sizeof(*snapshot), GFP_KERNEL);
+	/* Copy the ring under the spinlock, then format it after unlocking; seq_printf()
+	 * may do work that should not occur inside an IRQ-disabled critical section. */
+	snapshot = kmalloc_array(DEMO_LOG_CAPACITY, sizeof(*snapshot), GFP_KERNEL);
 	if (!snapshot)
 		return -ENOMEM;
 
@@ -131,8 +153,8 @@ static int ctx_monitor_proc_show(struct seq_file *m, void *v)
 	count = log_count;
 	for (i = 0; i < count; i++) {
 		size_t idx;
-		if (log_count == MAX_LOG_ENTRIES)
-			idx = (log_head + i) % MAX_LOG_ENTRIES;
+		if (log_count == DEMO_LOG_CAPACITY)
+			idx = (log_head + i) % DEMO_LOG_CAPACITY;
 		else
 			idx = i;
 		snapshot[i] = log_ring[idx];
@@ -149,8 +171,10 @@ static int ctx_monitor_proc_show(struct seq_file *m, void *v)
 	return 0;
 }
 
+/** @brief Open the context-monitor procfs status endpoint. */
 static int ctx_monitor_proc_open(struct inode *inode, struct file *file)
 {
+	/* single_open() binds this proc file to one complete seq_file snapshot. */
 	return single_open(file, ctx_monitor_proc_show, NULL);
 }
 
@@ -161,17 +185,22 @@ static const struct proc_ops ctx_monitor_proc_ops = {
 	.proc_release = single_release,
 };
 
+/** @brief Register the exception notifier and procfs reporting endpoint. */
 static int __init ctx_monitor_init(void)
 {
 	int ret;
 
+	/* register_die_notifier() subscribes to kernel exception notifications;
+	 * INT_MAX priority makes this observer run before lower-priority notifiers. */
 	ret = register_die_notifier(&ctx_die_nb);
 	if (ret) {
 		pr_err("Failed to register die notifier (err=%d)\n", ret);
 		return ret;
 	}
 
-	if (!proc_create(PROC_FILENAME, 0444, NULL, &ctx_monitor_proc_ops)) {
+	/* Expose the captured fault ring as /proc/ctx_monitor_log. */
+	if (!proc_create(PROC_FILENAME, DEMO_PROC_READ_ONLY_MODE, NULL,
+			 &ctx_monitor_proc_ops)) {
 		pr_err("Failed to create /proc/%s\n", PROC_FILENAME);
 		unregister_die_notifier(&ctx_die_nb);
 		return -ENOMEM;
@@ -181,12 +210,15 @@ static int __init ctx_monitor_init(void)
 	return 0;
 }
 
+/** @brief Unregister monitoring hooks and release procfs state. */
 static void __exit ctx_monitor_exit(void)
 {
+	/* Stop new userspace reads and unregister the exception callback. */
 	remove_proc_entry(PROC_FILENAME, NULL);
 	unregister_die_notifier(&ctx_die_nb);
 	pr_info("Module unloaded cleanly.\n");
 }
 
+/* Register the module-loader callbacks used by insmod and rmmod. */
 module_init(ctx_monitor_init);
 module_exit(ctx_monitor_exit);

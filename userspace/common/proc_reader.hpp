@@ -6,15 +6,18 @@
 #include <fstream>
 #include <string>
 #include <utility>
-#include "expected.hpp"
+#include "common/expected.hpp"
 
 namespace safety {
 
 // C++ Core Guidelines R.1 (RAII), I.11 (no raw owning pointers), E.1 (safety::expected)
+/** Reads text from a procfs or debugfs path with structured error reporting. */
 class ProcReader {
 public:
+    /** Creates a reader for an operating-system virtual file. */
     explicit ProcReader(std::filesystem::path path) : path_(std::move(path)) {}
 
+    /** Reads the complete file contents, or returns a descriptive error. */
     [[nodiscard]] auto read() const -> safety::expected<std::string, std::string> {
         if (!std::filesystem::exists(path_)) {
             return safety::unexpected("File does not exist: " + path_.string());
@@ -53,3 +56,4 @@ private:
 } // namespace safety
 
 #endif // USERSPACE_COMMON_PROC_READER_HPP
+    /** Returns the path associated with this reader. */

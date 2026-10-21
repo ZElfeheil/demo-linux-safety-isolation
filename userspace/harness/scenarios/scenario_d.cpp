@@ -1,5 +1,6 @@
-#include "scenario_d.hpp"
-#include "../../common/proc_reader.hpp"
+#include "harness/scenarios/scenario_d.hpp"
+#include "common/proc_reader.hpp"
+#include "common/demo_constants.hpp"
 #include <chrono>
 #include <fstream>
 #include <thread>
@@ -14,7 +15,7 @@ auto ScenarioD::setup() -> safety::expected<void, std::string> {
 
     std::ofstream status_file("/proc/safety_mem_status");
     if (status_file.is_open()) {
-        status_file << "protect";
+        status_file << demo::kEnableProtectionCommand;
         status_file.flush();
     }
     return {};
@@ -25,11 +26,11 @@ auto ScenarioD::run() -> ScenarioResult {
 
     std::ofstream bad_driver("/proc/bad_driver_ts");
     if (bad_driver.is_open()) {
-        bad_driver << "3";
+        bad_driver << demo::kLinearMapAttackCommand;
         bad_driver.flush();
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(demo::kAttackSettleTime);
 
     ProcReader reader("/proc/safety_mem_status");
     auto content = reader.read();
@@ -37,9 +38,10 @@ auto ScenarioD::run() -> ScenarioResult {
     auto end_ts = std::chrono::high_resolution_clock::now();
     uint64_t latency = std::chrono::duration_cast<std::chrono::nanoseconds>(end_ts - start_ts).count();
 
-    if (content && (content->find("0xBAD30003") != std::string::npos ||
+    if (content && (content->find(demo::kLinearBypassStatus) != std::string::npos ||
                     content->find("CORRUPTED") != std::string::npos ||
-                    content->find("value_via_phys: 0x5AFE1234") == std::string::npos)) {
+                    content->find(std::string("value_via_phys: ") +
+                                  std::string(demo::kSafetySentinelStatus)) == std::string::npos)) {
         return ScenarioResult{ScenarioStatus::Passed, {latency, latency, 0}, ""};
     }
 

@@ -6,13 +6,13 @@
 [![Linux 6.6 LTS](https://img.shields.io/badge/Linux_Kernel-6.6_LTS-orange.svg)](https://kernel.org)
 [![Target: ARM64](https://img.shields.io/badge/Architecture-ARM64-red.svg)](https://arm.com)
 
-An interactive, live ARM64 Linux 6.6 demonstration system illustrating the critical boundary between **software synchronization (`std::mutex`)** and **hardware-enforced memory isolation (PTE page protection & SMMUv3 bus translation)**.
+A live ARM64 Linux 6.6 demonstration system illustrating the critical boundary between **software synchronization (`std::mutex`)** and **hardware-enforced memory isolation (PTE page protection & SMMUv3 bus translation)**.
 
 ---
 
-## 💡 Key Question
+## 💡 Core Objective
 
-> **"What does it actually take to protect safety-critical kernel memory — and why isn't a mutex enough?"**
+> Demonstrate why a mutex alone cannot protect safety-critical kernel memory, and how CPU page-table and SMMU enforcement complement it.
 
 In safety-critical embedded systems (automotive ISO 26262, robotics, aerospace), developers frequently assume that holding a software lock or setting a page read-only guarantees safety. This project demonstrates live how rogue kernel threads, uncooperative drivers, and bus-mastering DMA devices easily bypass software abstractions, and proves how complete hardware isolation (Level 2 PTE walking + SMMUv3 IOMMU mapping) neutralizes memory corruption.
 
@@ -73,7 +73,7 @@ Everything maps to a single physical analogy to make abstract kernel mechanisms 
    * *Takeaway*: Protecting one virtual alias leaves the linear map fire exit open.
 3. **Scenario F — Full CTX + SMMUv3 Isolation**: Level 2 page-table walking locks both `vmalloc` AND linear map PTEs (PMD split applied). SMMUv3 domain blocks physical DMA bus-mastering transactions. Memory remains 100% PROTECTED.
    * *Takeaway*: Virtual MMU + Physical SMMU are both required for complete safety.
-4. **Scenario G — Mutex Metadata Attack (Optional Q&A)**: Attacker driver overwrites `mutex.owner = 0` in RAM. Thread B acquires the lock while Thread A still holds it!
+4. **Scenario G — Mutex Metadata Attack**: Attacker driver overwrites `mutex.owner = 0` in RAM. Thread B acquires the lock while Thread A still holds it!
    * *Takeaway*: Software state structures living in writable RAM are self-referentially fragile.
 
 ### Comprehensive Tradeoff Matrix
@@ -110,21 +110,21 @@ docker compose run build
 ```
 *Auto-detects host architecture and selects `-accel hvf` on macOS or `-accel kvm/tcg` on Linux.*
 
-### 3. Launch Interactive Presenter Mode (Inside QEMU)
+### 3. Run a Scenario (Inside QEMU)
 ```bash
-harness --interactive
+harness --scenario B
 ```
-*Auto-launches tmux split window: left pane shows live memory dashboard, right pane presents 4-beat interactive scenarios.*
+*The scenario runs continuously through setup, action, and teardown. Run `monitor` from a second SSH pane for the live dashboard.*
 
 ---
 
 ## 🎮 Harness CLI Options
 
 ```bash
-harness --interactive               # Interactive 3-scenario presenter mode (B, D, F)
-harness --interactive --start-at D  # Skip Scenario B, start directly at Scenario D
-harness --interactive --scenario G  # Trigger optional Scenario G (Q&A mode)
-harness --auto --scenario all        # Unattended CI automated validation mode
+harness --scenario B                # Run Scenario B
+harness --scenario F                # Run Scenario F
+harness --scenario all              # Run all core scenarios (B, D, E, F)
+harness --start-at D                # Run the core sequence beginning with Scenario D
 ```
 
 During Scenario D reveal, inspect live physical memory changes:

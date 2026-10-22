@@ -54,16 +54,18 @@ auto ScenarioF::run() -> ScenarioResult {
     auto end_ts = std::chrono::high_resolution_clock::now();
     uint64_t latency = std::chrono::duration_cast<std::chrono::nanoseconds>(end_ts - start_ts).count();
 
-    bool mon_has_fault = mon_log && (mon_log->find("FAULT") != std::string::npos || mon_log->find("BLOCKED") != std::string::npos);
-    bool smmu_has_fault = smmu_log && (smmu_log->find("FAULT") != std::string::npos || smmu_log->find("BLOCKED") != std::string::npos);
-
     const bool value_preserved = status &&
         status->find(std::string("value_via_vmalloc: ") +
                      std::string(demo::kSafetySentinelStatus)) != std::string::npos &&
         status->find(std::string("value_via_phys: ") +
                      std::string(demo::kSafetySentinelStatus)) != std::string::npos;
     if (value_preserved) {
-        const std::string evidence = (mon_has_fault || smmu_has_fault)
+        const bool protection_fault_recorded =
+            (mon_log && (mon_log->find("FAULT") != std::string::npos ||
+                         mon_log->find("BLOCKED") != std::string::npos)) ||
+            (smmu_log && (smmu_log->find("FAULT") != std::string::npos ||
+                          smmu_log->find("BLOCKED") != std::string::npos));
+        const std::string evidence = protection_fault_recorded
             ? "Attack blocked and recorded by a protection monitor"
             : "Attack target remained read-only; safety value was preserved";
         return ScenarioResult{ScenarioStatus::Passed,

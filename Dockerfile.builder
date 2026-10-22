@@ -54,6 +54,7 @@ RUN wget -q https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-st
 
 # Acquire aarch64 tmux and Dropbear SSH binaries using Ubuntu ports multi-arch apt index
 RUN dpkg --add-architecture arm64 \
+    && if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then sed -i '/^Types: deb$/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources; fi \
     && echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse" > /etc/apt/sources.list.d/arm64-ports.list \
     && echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse" >> /etc/apt/sources.list.d/arm64-ports.list \
     && apt-get update \

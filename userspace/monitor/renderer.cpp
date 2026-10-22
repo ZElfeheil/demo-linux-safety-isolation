@@ -134,12 +134,12 @@ void Renderer::render_normal(std::string& out, TerminalSize size) const {
 
     // Snapshot state
     struct SnapshotView {
-        uint32_t vmalloc_value;
-        uint32_t phys_value;
-        uint64_t mapping_entry;
-        bool writable;
-        bool ctx_protected;
-        bool smmu_active;
+        uint32_t vmalloc_value{};
+        uint32_t phys_value{};
+        uint64_t mapping_entry{};
+        bool writable{};
+        bool ctx_protected{};
+        bool smmu_active{};
         std::string mapping_level;
         std::string status;
     };

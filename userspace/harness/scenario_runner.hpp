@@ -41,7 +41,7 @@ public:
         // Give the independently running monitor time to ingest the baseline.
         std::this_thread::sleep_for(demo::kMonitorSnapshotSettleTime);
 
-        const auto result = scenario.run();
+        auto result = scenario.run();
         const std::string after_snapshot = read_status();
         publish_state(id, scenario.name(), "AFTER", before_snapshot, after_snapshot);
         std::cout << "    Result: "

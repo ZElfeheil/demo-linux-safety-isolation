@@ -30,22 +30,6 @@ for runtime_lib in libcrypt.so.1 libgmp.so.10; do
     done
 done
 
-if [[ -f "${ROOTFS_DIR}/usr/bin/tmux" ]]; then
-    echo "[+] Setting up /usr/bin/tmux_real and /bin/tmux locale wrapper..."
-    mv -f "${ROOTFS_DIR}/usr/bin/tmux" "${ROOTFS_DIR}/usr/bin/tmux_real"
-    chmod 4755 "${ROOTFS_DIR}/usr/bin/tmux_real"
-
-    cat << 'TMUX_SH' > "${ROOTFS_DIR}/bin/tmux"
-#!/bin/sh
-export LANG=C.UTF-8
-export LC_ALL=C.UTF-8
-export LC_CTYPE=C.UTF-8
-exec /usr/bin/tmux_real "$@"
-TMUX_SH
-    chmod +x "${ROOTFS_DIR}/bin/tmux"
-    cp -f "${ROOTFS_DIR}/bin/tmux" "${ROOTFS_DIR}/usr/bin/tmux"
-fi
-
 # Ensure dynamic linker interpreter /lib/ld-linux-aarch64.so.1 is populated
 mkdir -p "${ROOTFS_DIR}/lib" "${ROOTFS_DIR}/lib64" "${ROOTFS_DIR}/usr/lib" "${ROOTFS_DIR}/etc"
 for ld_location in "${ROOTFS_DIR}/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1" "${ROOTFS_DIR}/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1" "${ROOTFS_DIR}/lib/ld-linux-aarch64.so.1"; do

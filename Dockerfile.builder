@@ -52,22 +52,22 @@ RUN wget -q https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-st
     && rm -rf busybox-static_1.37.0-7ubuntu1_arm64.deb /tmp/busybox-pkg \
     && file /bin/busybox-aarch64
 
-# Acquire aarch64 tmux and Dropbear SSH binaries using Ubuntu ports multi-arch apt index
+# Acquire the aarch64 Dropbear SSH runtime using Ubuntu ports. tmux belongs on
+# the host; the guest only needs an SSH server for the second presentation pane.
 RUN dpkg --add-architecture arm64 \
     && if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then sed -i '/^Types: deb$/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources; fi \
     && echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse" > /etc/apt/sources.list.d/arm64-ports.list \
     && echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse" >> /etc/apt/sources.list.d/arm64-ports.list \
     && apt-get update \
-    && mkdir -p /tmp/tmux-pkg \
-    && (cd /tmp/tmux-pkg && apt-get download tmux:arm64 dropbear-bin:arm64 locales:arm64 libevent-2.1-7t64:arm64 libevent-core-2.1-7t64:arm64 libevent-extra-2.1-7t64:arm64 libevent-pthreads-2.1-7t64:arm64 libncursesw6:arm64 libtinfo6:arm64 libc6:arm64 libsystemd0:arm64 libzstd1:arm64 liblzma5:arm64 liblz4-1:arm64 libcap2:arm64 libgcrypt20:arm64 libgpg-error0:arm64 libutempter0:arm64 libtomcrypt1:arm64 libtommath1:arm64 zlib1g:arm64 2>/dev/null || true) \
+    && mkdir -p /tmp/dropbear-pkg/partial \
+    && apt-get install -y --download-only \
+         -o Dir::Cache::archives=/tmp/dropbear-pkg \
+         dropbear-bin:arm64 \
     && mkdir -p /opt/aarch64-root \
-    && for deb in /tmp/tmux-pkg/*.deb; do [ -f "$deb" ] && dpkg-deb -x "$deb" /opt/aarch64-root; done \
-    && mkdir -p /opt/aarch64-root/usr/lib/locale \
-    && localedef --no-archive -i C -f UTF-8 /opt/aarch64-root/usr/lib/locale/C.UTF-8 \
-    && cp /opt/aarch64-root/usr/bin/tmux /bin/tmux-aarch64 \
-    && chmod +x /bin/tmux-aarch64 \
-    && rm -rf /tmp/tmux-pkg /var/lib/apt/lists/* \
-    && file /bin/tmux-aarch64
+    && find /tmp/dropbear-pkg -type f -name '*.deb' -exec dpkg-deb -x {} /opt/aarch64-root \; \
+    && test -x /opt/aarch64-root/usr/sbin/dropbear \
+    && rm -rf /tmp/dropbear-pkg /var/lib/apt/lists/* \
+    && file /opt/aarch64-root/usr/sbin/dropbear
 
 # ==============================================================================
 # Stage 2: Linux Kernel Builder (Linux 6.6 LTS Kernel Image)

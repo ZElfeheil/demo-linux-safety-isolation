@@ -16,6 +16,7 @@ struct TelemetryData {
     std::string smmu_guard_log;
 };
 
+/** Read all kernel procfs endpoints needed for the comparison report. */
 static auto collect_telemetry() -> TelemetryData {
     TelemetryData data;
 
@@ -50,6 +51,7 @@ static auto collect_telemetry() -> TelemetryData {
     return data;
 }
 
+/** Convert collected telemetry into the presentation markdown report. */
 static auto generate_markdown_report(const TelemetryData& telemetry) -> std::string {
     std::ostringstream ss;
 
@@ -120,14 +122,15 @@ static auto generate_markdown_report(const TelemetryData& telemetry) -> std::str
 
 // cppcheck-suppress constParameter
 int main(int argc, char* const argv[]) {
+    constexpr std::string_view kOutputPrefix = "--output=";
     std::string output_path = "/results/comparison_table.md";
 
     for (int i = 1; i < argc; ++i) {
         const std::string_view arg(argv[i]);
         if (arg == "--output" && i + 1 < argc) {
             output_path = argv[++i];
-        } else if (arg.rfind("--output=", 0) == 0) {
-            output_path = arg.substr(9);
+        } else if (arg.rfind(kOutputPrefix, 0) == 0) {
+            output_path = arg.substr(kOutputPrefix.size());
         }
     }
 

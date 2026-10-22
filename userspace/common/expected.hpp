@@ -16,6 +16,7 @@
 namespace safety {
 
 template<typename E>
+/** Error value used to construct an unsuccessful expected result. */
 class unexpected {
 public:
     constexpr explicit unexpected(E err) : error_(std::move(err)) {}
@@ -40,6 +41,7 @@ template<typename E>
 unexpected(E) -> unexpected<E>;
 
 template<typename E>
+/** Exception raised when value() is requested from an unsuccessful result. */
 class bad_expected_access : public std::exception {
 public:
     explicit bad_expected_access(E err) : error_(std::move(err)) {}
@@ -50,6 +52,7 @@ private:
 };
 
 template<typename T, typename E>
+/** Minimal expected-like result type used when std::expected is unavailable. */
 class expected {
 public:
     constexpr expected() : var_(std::in_place_type<T>) {}
@@ -97,6 +100,7 @@ private:
 
 // Void specialization for safety::expected<void, E>
 template<typename E>
+/** Void-valued specialization of the fallback expected type. */
 class expected<void, E> {
 public:
     constexpr expected() : var_(std::in_place_type<std::monostate>) {}

@@ -19,6 +19,7 @@
 #include <linux/sched.h>
 
 #include "mutex_threads.h"
+#include "../demo_constants.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Safety Isolation Demo Team");
@@ -26,16 +27,16 @@ MODULE_DESCRIPTION("Kernel module running Thread A (Safety) and Thread B (Cooper
 MODULE_VERSION("1.0");
 
 /* Module Parameters */
-static unsigned int thread_a_delay_ms = 500;
-module_param(thread_a_delay_ms, uint, 0644);
+static unsigned int thread_a_delay_ms = MUTEX_THREAD_A_PERIOD_MS;
+module_param(thread_a_delay_ms, uint, DEMO_MODULE_PARAM_MODE);
 MODULE_PARM_DESC(thread_a_delay_ms, "Thread A loop period in ms (default: 500)");
 
-static unsigned int thread_b_delay_ms = 1000;
-module_param(thread_b_delay_ms, uint, 0644);
+static unsigned int thread_b_delay_ms = MUTEX_THREAD_B_PERIOD_MS;
+module_param(thread_b_delay_ms, uint, DEMO_MODULE_PARAM_MODE);
 MODULE_PARM_DESC(thread_b_delay_ms, "Thread B loop period in ms (default: 1000)");
 
-static unsigned int hold_duration_ms = 50;
-module_param(hold_duration_ms, uint, 0644);
+static unsigned int hold_duration_ms = MUTEX_HOLD_DURATION_MS;
+module_param(hold_duration_ms, uint, DEMO_MODULE_PARAM_MODE);
 MODULE_PARM_DESC(hold_duration_ms, "Thread A mutex hold duration in ms (default: 50)");
 
 /* External Mutex (from safety_mem.ko) */
@@ -51,6 +52,7 @@ static struct task_struct *task_b;
 static u32 violation_counter;
 static u32 contention_counter;
 
+/** @brief Export a snapshot of cooperative thread and mutex state. */
 void get_safety_mutex_status(struct mutex_status_info *info)
 {
 	if (!info)
@@ -62,7 +64,8 @@ void get_safety_mutex_status(struct mutex_status_info *info)
 
 	if (info->is_locked) {
 		unsigned long owner_val = (unsigned long)atomic_long_read(&safety_mutex.owner);
-		struct task_struct *owner = (struct task_struct *)(owner_val & ~0x07UL);
+		struct task_struct *owner =
+			(struct task_struct *)(owner_val & ~DEMO_MUTEX_OWNER_FLAGS_MASK);
 		if (owner) {
 			info->owner_pid = owner->pid;
 			get_task_comm(info->owner_name, owner);
@@ -77,19 +80,26 @@ void get_safety_mutex_status(struct mutex_status_info *info)
 }
 EXPORT_SYMBOL_GPL(get_safety_mutex_status);
 
+/** @brief Run the safety owner thread that periodically holds the mutex. */
 static int safety_thread_a_fn(void *data)
 {
 	pr_info("Thread A (Safety) started\n");
+	/* trace_printk() writes a presentation event to the ftrace ring consumed by
+	 * /sys/kernel/tracing/trace_pipe; it is separate from the printk log. */
 	trace_printk("mutex_threads: Thread A (safety) started\n");
 
 	while (!kthread_should_stop()) {
 		u32 initial_val, current_val;
 
+		/* mutex_trylock() avoids sleeping when the lock is immediately available;
+		 * mutex_lock() then waits if another cooperative thread owns it. */
 		if (!mutex_trylock(&safety_mutex)) {
 			contention_counter++;
 			mutex_lock(&safety_mutex);
 		}
 
+		/* READ_ONCE() forces one observable load on each side of the hold
+		 * window so the compiler cannot reuse or merge the two reads. */
 		if (safety_buf_ptr)
 			initial_val = READ_ONCE(*safety_buf_ptr);
 		else
@@ -112,8 +122,10 @@ static int safety_thread_a_fn(void *data)
 				     initial_val, current_val);
 		}
 
+		/* Release the sleeping mutex so another cooperative kernel thread may run. */
 		mutex_unlock(&safety_mutex);
 
+		/* Sleep interruptibly so kthread_stop() can wake and terminate this loop. */
 		msleep_interruptible(thread_a_delay_ms);
 	}
 
@@ -121,15 +133,19 @@ static int safety_thread_a_fn(void *data)
 	return 0;
 }
 
+/** @brief Run the cooperative thread that honors the shared mutex. */
 static int coop_thread_b_fn(void *data)
 {
 	pr_info("Thread B (Cooperative) started\n");
 	trace_printk("mutex_threads: Thread B (cooperative) started\n");
 
 	while (!kthread_should_stop()) {
+		/* Thread B is cooperative because every shared-memory access is enclosed
+		 * by the same safety_mutex protocol used by Thread A. */
 		mutex_lock(&safety_mutex);
 
 		if (safety_buf_ptr) {
+			/* WRITE_ONCE() performs one visible store of the known-good sentinel. */
 			WRITE_ONCE(*safety_buf_ptr, SAFETY_SENTINEL);
 			trace_printk("mutex_threads: Thread B restored sentinel 0x%08x\n", SAFETY_SENTINEL);
 		}
@@ -143,10 +159,13 @@ static int coop_thread_b_fn(void *data)
 	return 0;
 }
 
+/** @brief Start the cooperative safety and worker threads. */
 static int __init mutex_threads_init(void)
 {
 	pr_info("Initializing mutex_threads module\n");
 
+	/* kthread_run() creates a task and wakes it immediately; the returned
+	 * task_struct handle is retained for orderly shutdown. */
 	task_a = kthread_run(safety_thread_a_fn, NULL, "safety_thread");
 	if (IS_ERR(task_a)) {
 		pr_err("Failed to create Thread A\n");
@@ -163,14 +182,18 @@ static int __init mutex_threads_init(void)
 	return 0;
 }
 
+/** @brief Stop the worker threads and release module state. */
 static void __exit mutex_threads_exit(void)
 {
 	pr_info("Cleaning up mutex_threads module\n");
+	/* kthread_stop() requests termination, wakes a sleeping thread, and waits
+	 * until its thread function returns. */
 	if (task_a)
 		kthread_stop(task_a);
 	if (task_b)
 		kthread_stop(task_b);
 }
 
+/* Register the functions invoked by the module loader for insmod and rmmod. */
 module_init(mutex_threads_init);
 module_exit(mutex_threads_exit);

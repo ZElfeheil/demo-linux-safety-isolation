@@ -1,4 +1,4 @@
-#include "module_loader.hpp"
+#include "harness/module_loader.hpp"
 #include <algorithm>
 #include <csignal>
 #include <cstdlib>
@@ -7,6 +7,10 @@
 #include <unistd.h>
 
 namespace safety {
+
+namespace {
+constexpr int kShellSignalExitBase = 128;
+}
 
 static std::vector<ModuleLoader*> g_active_loaders;
 static std::mutex g_loaders_mutex;
@@ -51,10 +55,14 @@ auto ModuleLoader::load(const std::filesystem::path& module_path, const std::str
 
     std::filesystem::path target_path = module_path;
     if (!std::filesystem::exists(target_path)) {
-        // Fallback to local ./modules directory if absolute /lib/modules path doesn't exist
-        std::filesystem::path local_alt = std::filesystem::path("modules") / module_path.filename();
-        if (std::filesystem::exists(local_alt)) {
-            target_path = local_alt;
+        // The initramfs installs modules at /modules; use that location so the
+        // harness works from both the console shell and an SSH login directory.
+        const std::filesystem::path guest_modules = std::filesystem::path("/modules") / module_path.filename();
+        const std::filesystem::path local_modules = std::filesystem::path("modules") / module_path.filename();
+        if (std::filesystem::exists(guest_modules)) {
+            target_path = guest_modules;
+        } else if (std::filesystem::exists(local_modules)) {
+            target_path = local_modules;
         } else {
             return safety::unexpected(std::format("Module file not found: {}", module_path.string()));
         }
@@ -143,7 +151,7 @@ void ModuleLoader::cleanup_on_signal() {
                 loader->unload_all();
             }
         }
-        std::_Exit(128 + sig);
+        std::_Exit(kShellSignalExitBase + sig);
     }
 }
 

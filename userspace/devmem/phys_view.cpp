@@ -13,6 +13,7 @@ namespace safety::devmem {
 using safety::common::PhysicalMemoryView;
 using safety::common::MemoryAccessMode;
 
+/** Parse a hexadecimal or decimal physical address from CLI text. */
 auto parse_address(std::string_view str) -> safety::expected<uint64_t, std::string> {
     if (str.empty()) {
         return safety::unexpected(std::string("Empty address string"));
@@ -26,6 +27,7 @@ auto parse_address(std::string_view str) -> safety::expected<uint64_t, std::stri
     return val;
 }
 
+/** Parse a 32-bit value from CLI text. */
 auto parse_value32(std::string_view str) -> safety::expected<uint32_t, std::string> {
     if (str.empty()) {
         return safety::unexpected(std::string("Empty value string"));
@@ -39,6 +41,7 @@ auto parse_value32(std::string_view str) -> safety::expected<uint32_t, std::stri
     return static_cast<uint32_t>(val);
 }
 
+/** Map and read one 32-bit value from physical memory. */
 auto read_phys(uint64_t phys_addr) -> safety::expected<uint32_t, std::string> {
     auto view_res = PhysicalMemoryView::map(phys_addr, sizeof(uint32_t), MemoryAccessMode::ReadOnly);
     if (!view_res) {
@@ -47,6 +50,7 @@ auto read_phys(uint64_t phys_addr) -> safety::expected<uint32_t, std::string> {
     return view_res->read_at<uint32_t>(0);
 }
 
+/** Map and write one 32-bit value to physical memory. */
 auto write_phys(uint64_t phys_addr, uint32_t value) -> safety::expected<void, std::string> {
     auto view_res = PhysicalMemoryView::map(phys_addr, sizeof(uint32_t), MemoryAccessMode::ReadWrite);
     if (!view_res) {
@@ -56,20 +60,24 @@ auto write_phys(uint64_t phys_addr, uint32_t value) -> safety::expected<void, st
     return {};
 }
 
+/** Continuously display a physical 32-bit value until interrupted. */
 auto watch_phys(uint64_t phys_addr) -> safety::expected<void, std::string> {
     static std::atomic<bool> dummy_stop{false};
-    WatchOptions opts{.phys_addr = phys_addr, .interval = std::chrono::milliseconds(100), .single_shot = false};
+    WatchOptions opts{.phys_addr = phys_addr, .interval = kDefaultWatchInterval, .single_shot = false};
     return watch_phys_32(opts, dummy_stop);
 }
 
+/** Public 32-bit physical-read adapter used by the CLI. */
 auto read_phys_32(uint64_t phys_addr) -> safety::expected<uint32_t, std::string> {
     return read_phys(phys_addr);
 }
 
+/** Public 32-bit physical-write adapter used by the CLI. */
 auto write_phys_32(uint64_t phys_addr, uint32_t value) -> safety::expected<void, std::string> {
     return write_phys(phys_addr, value);
 }
 
+/** Poll a physical 32-bit value using configurable watch options. */
 auto watch_phys_32(const WatchOptions& options, const std::atomic<bool>& stop_requested) -> safety::expected<void, std::string> {
     auto view_res = PhysicalMemoryView::map(options.phys_addr, sizeof(uint32_t), MemoryAccessMode::ReadOnly);
     if (!view_res) {
@@ -77,7 +85,8 @@ auto watch_phys_32(const WatchOptions& options, const std::atomic<bool>& stop_re
     }
 
     std::cout << "Watching physical address 0x" << std::hex << std::uppercase << options.phys_addr
-              << " (100ms interval, Ctrl+C to exit)..." << std::dec << std::endl;
+              << " (" << std::dec << options.interval.count()
+              << "ms interval, Ctrl+C to exit)..." << std::endl;
 
     auto last_val = view_res->read_at<uint32_t>(0);
     std::cout << "[INIT] 0x" << std::hex << std::uppercase << options.phys_addr

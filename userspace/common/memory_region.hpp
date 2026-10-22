@@ -15,22 +15,25 @@
 #include <sys/mman.h>
 #include <type_traits>
 #include <unistd.h>
-#include "expected.hpp"
+#include "common/expected.hpp"
 
 namespace safety {
 namespace common {
 
+/** Conservative fallback page size used when sysconf is unavailable. */
 constexpr std::size_t kDefaultPageSize = 4096;
 
+/** Access permissions requested for a physical memory mapping. */
 enum class MemoryAccessMode : std::uint8_t {
     ReadOnly,
     ReadWrite
 };
 
-/// Custom deleter for std::unique_ptr managing mmap memory allocations
+/** Custom deleter for std::unique_ptr managing mmap memory allocations. */
 struct MmapDeleter {
     std::size_t length{0};
 
+    /** Unmap the allocation when its owning smart pointer is destroyed. */
     void operator()(void* ptr) const noexcept {
         if (ptr != nullptr && ptr != MAP_FAILED && length > 0) {
             ::munmap(ptr, length);
@@ -38,10 +41,10 @@ struct MmapDeleter {
     }
 };
 
-/// RAII wrapper for physical memory regions mapped via /dev/mem
-// C++ Core Guidelines I.11 (no raw owning pointer), I.13 (no raw array transfer), ES.49 (bit_cast)
+/** RAII wrapper for a physical memory region mapped through /dev/mem. */
 class PhysicalMemoryView {
 public:
+    /** Creates an empty, invalid view. */
     PhysicalMemoryView() = default;
 
     PhysicalMemoryView(std::unique_ptr<void, MmapDeleter> mapping,
@@ -61,7 +64,14 @@ public:
     PhysicalMemoryView(const PhysicalMemoryView&) = delete;
     PhysicalMemoryView& operator=(const PhysicalMemoryView&) = delete;
 
-    /// Maps a physical memory range using page alignment
+    /**
+     * @brief Map a physical memory range using page alignment.
+     * @param phys_addr Physical start address requested by the caller.
+     * @param size Number of bytes visible through the returned view.
+     * @param mode Read-only or read-write mapping permissions.
+     * @param dev_path Device file used for the mapping, normally `/dev/mem`.
+     * @return A valid view on success, or a descriptive error string.
+     */
     [[nodiscard]] static auto map(uint64_t phys_addr,
                                   std::size_t size = kDefaultPageSize,
                                   MemoryAccessMode mode = MemoryAccessMode::ReadOnly,
@@ -101,7 +111,10 @@ public:
         return PhysicalMemoryView(std::move(mapping), phys_addr, size, page_offset);
     }
 
-    /// Returns a const span view of the mapped physical memory region (I.13)
+    /**
+     * @brief Return a read-only span over the mapped physical memory region.
+     * @return An empty span if the view is invalid; otherwise the requested bytes.
+     */
     [[nodiscard]] auto view() const noexcept -> std::span<const std::byte> {
         if (!mapping_) {
             return {};
@@ -110,7 +123,10 @@ public:
         return {byte_ptr, size_};
     }
 
-    /// Returns a mutable span view of the mapped physical memory region
+    /**
+     * @brief Return a writable span over the mapped physical memory region.
+     * @return An empty span if the view is invalid; otherwise writable mapped bytes.
+     */
     [[nodiscard]] auto mutable_view() noexcept -> std::span<std::byte> {
         if (!mapping_) {
             return {};
@@ -119,7 +135,11 @@ public:
         return {byte_ptr, size_};
     }
 
-    /// Reads a typed value at the specified offset within the mapped region using std::bit_cast (ES.49)
+    /**
+     * @brief Read a trivially copyable value at an offset within the mapping.
+     * @param offset Byte offset relative to the requested physical address.
+     * @return The value read, or a value-initialized object for an invalid view.
+     */
     template <typename T>
         requires std::is_trivially_copyable_v<T>
     [[nodiscard]] auto read_at(std::ptrdiff_t offset = 0) const -> T {
@@ -128,7 +148,7 @@ public:
         }
         const auto* base_ptr = static_cast<const std::byte*>(mapping_.get()) + offset_in_page_ + offset;
 
-        if constexpr (sizeof(T) == 4 && std::is_integral_v<T>) {
+        if constexpr (sizeof(T) == sizeof(uint32_t) && std::is_integral_v<T>) {
             const volatile auto* vptr = reinterpret_cast<const volatile uint32_t*>(base_ptr);
             const uint32_t val = *vptr;
             return std::bit_cast<T>(val);
@@ -139,7 +159,11 @@ public:
         }
     }
 
-    /// Writes a typed value at the specified offset within the mapped region using std::bit_cast (ES.49)
+    /**
+     * @brief Write a trivially copyable value at an offset within the mapping.
+     * @param val Value to write to the mapped physical memory.
+     * @param offset Byte offset relative to the requested physical address.
+     */
     template <typename T>
         requires std::is_trivially_copyable_v<T>
     void write_at(const T& val, std::ptrdiff_t offset = 0) {
@@ -148,7 +172,7 @@ public:
         }
         auto* base_ptr = static_cast<std::byte*>(mapping_.get()) + offset_in_page_ + offset;
 
-        if constexpr (sizeof(T) == 4 && std::is_integral_v<T>) {
+        if constexpr (sizeof(T) == sizeof(uint32_t) && std::is_integral_v<T>) {
             volatile auto* vptr = reinterpret_cast<volatile uint32_t*>(base_ptr);
             *vptr = std::bit_cast<uint32_t>(val);
         } else {
@@ -156,9 +180,13 @@ public:
         }
     }
 
+    /** Returns the requested physical start address. */
     [[nodiscard]] uint64_t phys_addr() const noexcept { return phys_addr_; }
+    /** Returns the requested mapping size in bytes. */
     [[nodiscard]] std::size_t size() const noexcept { return size_; }
+    /** Returns the byte offset from the aligned mapping base. */
     [[nodiscard]] std::size_t offset_in_page() const noexcept { return offset_in_page_; }
+    /** Reports whether the view owns a valid mapping. */
     [[nodiscard]] bool is_valid() const noexcept { return mapping_ != nullptr; }
 
 private:

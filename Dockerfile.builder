@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     file \
     tar \
     gzip \
+    locales \
     sparse \
     libsqlite3-dev \
     ca-certificates \
@@ -42,12 +43,31 @@ RUN (git clone --depth 1 https://github.com/error27/smatch.git /tmp/smatch || gi
     && rm -rf /tmp/smatch || echo "Warning: smatch build skipped"
 
 # Download aarch64 64-bit static busybox binary package for target VM rootfs
-RUN wget -q http://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.37.0-10.1ubuntu3_arm64.deb \
-    && dpkg-deb -x busybox-static_1.37.0-10.1ubuntu3_arm64.deb /tmp/busybox-pkg \
-    && cp /tmp/busybox-pkg/usr/bin/busybox /bin/busybox-aarch64 \
+RUN wget -q https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.37.0-7ubuntu1_arm64.deb \
+    && dpkg-deb -x busybox-static_1.37.0-7ubuntu1_arm64.deb /tmp/busybox-pkg \
+    && BUSYBOX_BIN="$(find /tmp/busybox-pkg -type f -name busybox -print -quit)" \
+    && test -n "${BUSYBOX_BIN}" \
+    && cp "${BUSYBOX_BIN}" /bin/busybox-aarch64 \
     && chmod +x /bin/busybox-aarch64 \
-    && rm -rf busybox-static_1.37.0-10.1ubuntu3_arm64.deb /tmp/busybox-pkg \
+    && rm -rf busybox-static_1.37.0-7ubuntu1_arm64.deb /tmp/busybox-pkg \
     && file /bin/busybox-aarch64
+
+# Acquire the aarch64 Dropbear SSH runtime using Ubuntu ports. tmux belongs on
+# the host; the guest only needs an SSH server for the second presentation pane.
+RUN dpkg --add-architecture arm64 \
+    && if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then sed -i '/^Types: deb$/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources; fi \
+    && echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse" > /etc/apt/sources.list.d/arm64-ports.list \
+    && echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse" >> /etc/apt/sources.list.d/arm64-ports.list \
+    && apt-get update \
+    && mkdir -p /tmp/dropbear-pkg/partial \
+    && apt-get install -y --download-only \
+         -o Dir::Cache::archives=/tmp/dropbear-pkg \
+         dropbear-bin:arm64 \
+    && mkdir -p /opt/aarch64-root \
+    && find /tmp/dropbear-pkg -type f -name '*.deb' -exec dpkg-deb -x {} /opt/aarch64-root \; \
+    && test -x /opt/aarch64-root/usr/sbin/dropbear \
+    && rm -rf /tmp/dropbear-pkg /var/lib/apt/lists/* \
+    && file /opt/aarch64-root/usr/sbin/dropbear
 
 # ==============================================================================
 # Stage 2: Linux Kernel Builder (Linux 6.6 LTS Kernel Image)
@@ -60,8 +80,9 @@ RUN wget -q https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.tar.xz \
     && tar xf linux-6.6.tar.xz \
     && rm linux-6.6.tar.xz
 
-# Copy target kernel configuration
-COPY env/kernel.config /demo/linux-6.6/.config
+# Copy the project-specific options as a configuration fragment.  The base
+# defconfig is generated first below, then this fragment is merged into it.
+COPY env/kernel.config /demo/kernel-demo.config
 
 # Configure and compile Linux kernel image for ARM64 with exported symbols for demo modules
 RUN cd /demo/linux-6.6 \
@@ -72,6 +93,11 @@ RUN cd /demo/linux-6.6 \
     && echo 'EXPORT_SYMBOL_GPL(init_mm);' >> mm/init-mm.c \
     && echo '#include <linux/module.h>' >> mm/maccess.c \
     && echo 'EXPORT_SYMBOL_GPL(copy_to_kernel_nofault);' >> mm/maccess.c \
+    && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig \
+    && ./scripts/kconfig/merge_config.sh -m .config /demo/kernel-demo.config \
+    && ./scripts/config --enable CONFIG_DEVMEM \
+    && ./scripts/config --disable CONFIG_STRICT_DEVMEM \
+    && ./scripts/config --disable CONFIG_IO_STRICT_DEVMEM \
     && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig \
     && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) Image modules \
     && make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) modules_prepare
@@ -134,6 +160,8 @@ RUN mkdir -p /demo/rootfs/modules /demo/rootfs/bin \
 # ==============================================================================
 FROM scratch AS artifacts
 COPY --from=kernel-builder /demo/linux-6.6/arch/arm64/boot/Image /Image
+COPY --from=kernel-builder /demo/linux-6.6/vmlinux /vmlinux
+COPY --from=module-builder /demo/kernel/ /kernel-modules/
 COPY --from=rootfs-builder /demo/out/initramfs.cpio.gz /initramfs.cpio.gz
 
 # ==============================================================================
